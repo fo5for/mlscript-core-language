@@ -60,10 +60,10 @@ abstract class TyperHelpers { Typer: Typer =>
     case N => "="
   }
   
-  def recordIntersection(fs1: Ls[Var -> FieldType], fs2: Ls[Var -> FieldType]): Ls[Var -> FieldType] =
+  def recordIntersection(fs1: Ls[RcdKey -> FieldType], fs2: Ls[RcdKey -> FieldType]): Ls[RcdKey -> FieldType] =
     mergeMap(fs1, fs2)(_ && _).toList
   
-  def recordUnion(fs1: Ls[Var -> FieldType], fs2: Ls[Var -> FieldType]): Ls[Var -> FieldType] = {
+  def recordUnion(fs1: Ls[RcdKey -> FieldType], fs2: Ls[RcdKey -> FieldType]): Ls[RcdKey -> FieldType] = {
     val fs2m = fs2.toMap
     fs1.flatMap { case (k, v) => fs2m.get(k).map(v2 => k -> (v || v2)) }
   }

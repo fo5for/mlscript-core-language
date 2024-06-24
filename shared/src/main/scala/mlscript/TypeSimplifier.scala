@@ -57,10 +57,10 @@ trait TypeSimplifier { self: Typer =>
       
       case tr @ TypeRef(defn, targs) if builtinTypes.contains(defn) => process(tr.expand, parent)
       
-      case RecordType(fields) => RecordType.mk(fields.flatMap { case (v @ Var(fnme), fty) =>
+      case RecordType(fields) => RecordType.mk(fields.flatMap { case (v, fty) =>
         // * We make a pass to transform the LB and UB of variant type parameter fields into their exterma
-        val prefix = fnme.takeWhile(_ =/= '#')
-        val postfix = fnme.drop(prefix.length + 1)
+        val prefix = v.name.takeWhile(_ =/= '#')
+        val postfix = v.name.drop(prefix.length + 1)
         lazy val default = fty.update(process(_ , N), process(_ , N))
         if (postfix.isEmpty) v -> default :: Nil
         else {
@@ -226,7 +226,7 @@ trait TypeSimplifier { self: Typer =>
                 // * The fields that are *implied* by the tentatively constructed class type
                 val clsFields = typeRef match {
                   case S(typeRef) => fieldsOf(typeRef.expandWith(paramTags = true), paramTags = true)
-                  case N => Map.empty[Var, FieldType]
+                  case N => Map.empty[RcdKey, FieldType]
                 }
                 println(s"clsFields ${clsFields.mkString(", ")}")
                 

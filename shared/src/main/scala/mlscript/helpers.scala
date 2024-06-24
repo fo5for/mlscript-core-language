@@ -144,7 +144,7 @@ abstract class TypeImpl extends Located { self: Type =>
   // by traversing the first level of intersection. This is used
   // for finding the fields and types of a class body, since the
   // body is made of up an intersection of classes and records
-  lazy val collectBodyFieldsAndTypes: List[Var -> Type] = this match {
+  lazy val collectBodyFieldsAndTypes: List[RcdKey -> Type] = this match {
     case Record(fields) => fields.map(field => (field._1, field._2.out))
     case Inter(ty1, ty2) => ty1.collectBodyFieldsAndTypes ++ ty2.collectBodyFieldsAndTypes
     case _: Union | _: Function | _: Tuple | _: Recursive
@@ -284,6 +284,7 @@ trait TermImpl extends StatementImpl { self: Term =>
     case DecLit(value) => "decimal literal"
     case StrLit(value) => "string literal"
     case UnitLit(value) => if (value) "undefined literal" else "null literal"
+    case Internal(iname) => "internal reference"
     case Var(name) => "reference" // "variable reference"
     case Asc(trm, ty) => "type ascription"
     case Lam(name, rhs) => "lambda expression"
@@ -307,6 +308,7 @@ trait TermImpl extends StatementImpl { self: Term =>
     case DecLit(value) => value.toString
     case StrLit(value) => '"'.toString + value + '"'
     case UnitLit(value) => if (value) "undefined" else "null"
+    case i@Internal(iname) => i.name
     case Var(name) => name
     case Asc(trm, ty) => s"$trm : $ty"
     case Lam(name, rhs) => s"($name => $rhs)"
@@ -335,6 +337,10 @@ trait LitImpl { self: Lit =>
   }
 }
 
+trait RcdKeyImpl { self: RcdKey =>
+  
+}
+
 trait VarImpl { self: Var =>
   def isPatVar: Bool =
     name.head.isLetter && name.head.isLower && name =/= "true" && name =/= "false"
@@ -343,6 +349,7 @@ trait VarImpl { self: Var =>
 trait SimpleTermImpl extends Ordered[SimpleTerm] { self: SimpleTerm =>
   def compare(that: SimpleTerm): Int = this.idStr compare that.idStr
   val idStr: Str = this match {
+    case i: Internal => i.toString
     case Var(name) => name
     case lit: Lit => lit.toString
   }
@@ -425,6 +432,7 @@ trait StatementImpl extends Located { self: Statement =>
   }
   
   def children: List[Located] = this match {
+    case Internal(iname) => Nil
     case Var(name) => Nil
     case Asc(trm, ty) => trm :: Nil
     case Lam(lhs, rhs) => lhs :: rhs :: Nil

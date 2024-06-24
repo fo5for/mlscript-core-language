@@ -218,7 +218,7 @@ class NormalForms extends TyperDatatypes { self: Typer =>
         | (RhsBases(_, S(R(_)), _), _: FunctionType | _: ArrayBase)
         => N
     }
-    def | (that: (Var, FieldType)): Opt[RhsNf] = this match {
+    def | (that: (RcdKey, FieldType)): Opt[RhsNf] = this match {
       case RhsBot => S(RhsField(that._1, that._2))
       case RhsField(n1, t1) if n1 === that._1 => S(RhsField(n1, t1 || that._2))
       case RhsBases(p, N, trs) => S(RhsBases(p, S(R(RhsField(that._1, that._2))), trs))
@@ -229,8 +229,8 @@ class NormalForms extends TyperDatatypes { self: Typer =>
     def <:< (that: RhsNf): Bool = (this.toType() <:< that.toType())(Ctx.empty) // TODO less inefficient! (uncached calls to toType)
     def isBot: Bool = isInstanceOf[RhsBot.type]
   }
-  case class RhsField(name: Var, ty: FieldType) extends RhsNf {
-    def name_ty: Var -> FieldType = name -> ty
+  case class RhsField(name: RcdKey, ty: FieldType) extends RhsNf {
+    def name_ty: RcdKey -> FieldType = name -> ty
     override def toString: Str = s"{$name:$ty}"
   }
   case class RhsBases(

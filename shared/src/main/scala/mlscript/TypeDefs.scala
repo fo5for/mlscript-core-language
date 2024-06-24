@@ -129,7 +129,7 @@ class TypeDefs extends ConstraintSolver { self: Typer =>
   /** Only supports getting the fields of a valid base class type.
    * Notably, does not traverse type variables. 
    * Note: this does not retrieve the positional fields implicitly defined by tuples */
-  def fieldsOf(ty: SimpleType, paramTags: Bool)(implicit ctx: Ctx): Map[Var, FieldType] =
+  def fieldsOf(ty: SimpleType, paramTags: Bool)(implicit ctx: Ctx): Map[RcdKey, FieldType] =
   // trace(s"Fields of $ty {${travsersed.mkString(",")}}")
   {
     ty match {

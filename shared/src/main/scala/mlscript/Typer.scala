@@ -454,6 +454,7 @@ class Typer(var dbg: Boolean, var verbose: Bool, var explainErrors: Bool)
           case ty: TypeScheme => ty
         }.instantiate
         mkProxy(ty, prov)
+      case _: Internal => ???
       case lit: Lit => ClassTag(lit, lit.baseClasses)(prov)
       case App(Var("neg" | "~"), trm) => typeTerm(trm).neg(prov)
       case App(App(Var("|"), lhs), rhs) =>
@@ -616,6 +617,7 @@ class Typer(var dbg: Boolean, var verbose: Bool, var explainErrors: Bool)
                 case Trt => trtNameToNomTag(td)(tp(pat.toLoc, "trait pattern"), ctx)
               }
           }
+        case Internal(iname) => ???
       }
       val newCtx = ctx.nest
       val (req_ty, bod_ty, (tys, rest_ty)) = scrutVar match {
@@ -686,6 +688,7 @@ class Typer(var dbg: Boolean, var verbose: Bool, var explainErrors: Bool)
             ) TypeName(n)
             else TypeTag(n)
           case lit: Lit => Literal(lit)
+          case Internal(iname) => ???
         }
         case TypeRef(td, Nil) => td
         case tr @ TypeRef(td, targs) => AppliedType(td, tr.mapTargs(S(true)) {

@@ -99,19 +99,19 @@ abstract class TyperDatatypes extends TyperHelpers { self: Typer =>
     }} -> $rhs)"
   }
   
-  case class RecordType(fields: List[(Var, FieldType)])(val prov: TypeProvenance) extends SimpleType {
+  case class RecordType(fields: List[(RcdKey, FieldType)])(val prov: TypeProvenance) extends SimpleType {
     lazy val level: Int = fields.iterator.map(_._2.level).maxOption.getOrElse(0)
     def toInter: SimpleType =
       fields.map(f => RecordType(f :: Nil)(prov)).foldLeft(TopType: ST)(((l, r) => ComposedType(false, l, r)(noProv)))
-    def mergeAllFields(fs: Iterable[Var -> FieldType]): RecordType = {
-      val res = mutable.SortedMap.empty[Var, FieldType]
+    def mergeAllFields(fs: Iterable[RcdKey -> FieldType]): RecordType = {
+      val res = mutable.SortedMap.empty[RcdKey, FieldType]
       fs.foreach(f => res.get(f._1) match {
         case N => res(f._1) = f._2
         case S(ty) => res(f._1) = ty && f._2
       })
       RecordType(res.toList)(prov)
     }
-    def addFields(fs: Ls[Var -> FieldType]): RecordType = {
+    def addFields(fs: Ls[RcdKey -> FieldType]): RecordType = {
       val shadowing = fs.iterator.map(_._1).toSet
       RecordType(fields.filterNot(f => shadowing(f._1)) ++ fs)(prov)
     }
@@ -120,7 +120,7 @@ abstract class TyperDatatypes extends TyperHelpers { self: Typer =>
   }
   object RecordType {
     def empty: RecordType = RecordType(Nil)(noProv)
-    def mk(fields: List[(Var, FieldType)])(prov: TypeProvenance = noProv): SimpleType =
+    def mk(fields: List[(RcdKey, FieldType)])(prov: TypeProvenance = noProv): SimpleType =
       if (fields.isEmpty) ExtrType(false)(prov) else RecordType(fields)(prov)
   }
   
