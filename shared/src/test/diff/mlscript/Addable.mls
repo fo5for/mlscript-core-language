@@ -140,7 +140,7 @@ addTwo s n
 //│ ╟── application of type `Num & {val: ?val}` is not an instance of type `Str`
 //│ ║  l.17: 	n = Num { val = 1 }
 //│ ║        	    ^^^^^^^^^^^^^^^
-//│ ╟── but it flows into reference with expected type `Str`
+//│ ╟── but it flows into reference with expected type `#Str`
 //│ ║  l.+1: 	addTwo s n
 //│ ║        	         ^
 //│ ╟── Note: constraint arises from type reference:
@@ -181,5 +181,5 @@ class Str_bad_0: Addable[Str_bad_0] & { val: string }
 //│ ║  l.+2: 	  method Add that = Str_bad_0 { val = this.val + that.val }
 //│ ╙──      	                                                 ^^^^^^^^
 //│ Defined class Str_bad_0
-//│ Defined Str_bad_0.Add: Str_bad_0 -> {val: int} -> (error | Str_bad_0 & {val: error | int})
+//│ Defined Str_bad_0.Add: Str_bad_0 -> {val: int} -> (Str_bad_0 & {val: error | int} | error)
 

@@ -47,7 +47,7 @@ class Bar3: Foo2[int]
 :ns
 Bar2
 Bar3
-//│ res: {x: 'x} -> (bar2 & {Foo2#A = int, x: 'x})
+//│ res: {x: 'x} -> (#Bar2 & {Foo2#A = int, x: 'x})
 //│   where
 //│     'x <: int
 //│    = [Function: res]
@@ -144,4 +144,68 @@ d: Foo2[string]
 //│ ╙──       	        ^^^^^^
 //│ res: Foo2[string]
 //│    = Bar2 { x: 1 }
+
+
+
+// * Notice that type parameters are shown with a `#` because they're encoded as trait tags...
+
+:e
+class F[a]
+  method M: a
+  method G = this.M : int
+  method H = this.M : #a
+  method I = this.M : #A
+//│ ╔══[ERROR] Type mismatch in type ascription:
+//│ ║  l.155: 	  method G = this.M : int
+//│ ║         	             ^^^^^^
+//│ ╟── field selection of type `#a` is not an instance of type `int`
+//│ ╟── Note: constraint arises from type reference:
+//│ ║  l.155: 	  method G = this.M : int
+//│ ║         	                      ^^^
+//│ ╟── Note: class type parameter a is defined at:
+//│ ║  l.153: 	class F[a]
+//│ ╙──       	        ^
+//│ ╔══[ERROR] type identifier not found: a
+//│ ║  l.156: 	  method H = this.M : #a
+//│ ╙──       	                      ^^
+//│ ╔══[ERROR] type identifier not found: A
+//│ ║  l.157: 	  method I = this.M : #A
+//│ ╙──       	                      ^^
+//│ Defined class F[+a]
+//│ Declared F.M: F['a] -> 'a
+//│ Defined F.G: F[?] -> int
+//│ Defined F.H: F[?] -> error
+//│ Defined F.I: F[?] -> error
+
+class A
+//│ Defined class A
+
+:e
+class G[A]
+  method M: A
+  method G = this.M : #A
+  method H = this.M : a
+  method I = this.M : #a
+//│ ╔══[ERROR] Type mismatch in type ascription:
+//│ ║  l.186: 	  method G = this.M : #A
+//│ ║         	             ^^^^^^
+//│ ╟── field selection of type `#A` is not an instance of type `A`
+//│ ╟── Note: constraint arises from class tag:
+//│ ║  l.186: 	  method G = this.M : #A
+//│ ║         	                      ^^
+//│ ╟── Note: class type parameter A is defined at:
+//│ ║  l.184: 	class G[A]
+//│ ╙──       	        ^
+//│ ╔══[ERROR] type identifier not found: a
+//│ ║  l.187: 	  method H = this.M : a
+//│ ╙──       	                      ^
+//│ ╔══[ERROR] type identifier not found: a
+//│ ║  l.188: 	  method I = this.M : #a
+//│ ╙──       	                      ^^
+//│ Defined class G[+A]
+//│ Declared G.M: G['A] -> 'A
+//│ Defined G.G: G[?] -> A
+//│ Defined G.H: G[?] -> error
+//│ Defined G.I: G[?] -> error
+
 

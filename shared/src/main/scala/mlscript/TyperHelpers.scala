@@ -67,10 +67,10 @@ abstract class TyperHelpers { Typer: Typer =>
     val fs2m = fs2.toMap
     fs1.flatMap { case (k, v) => fs2m.get(k).map(v2 => k -> (v || v2)) }
   }
-
+  
   def subst(ts: PolymorphicType, map: Map[SimpleType, SimpleType]): PolymorphicType = 
     PolymorphicType(ts.level, subst(ts.body, map))
-
+  
   def subst(st: SimpleType, map: Map[SimpleType, SimpleType], substInMap: Bool = false)
         (implicit cache: MutMap[TypeVariable, SimpleType] = MutMap.empty): SimpleType =
             // trace(s"subst($st)") {
@@ -105,57 +105,6 @@ abstract class TyperHelpers { Typer: Typer =>
     (fs1 lazyZip fs2).map {
       case ((S(n1), t1), (S(n2), t2)) => (Option.when(n1 === n2)(n1), t1 | t2)
       case ((no1, t1), (no2, t2)) => (N, t1 | t2)
-    }
-  }
-  
-  def factorize(cs: Ls[Conjunct], sort: Bool): Ls[ST] = {
-    val factors = MutMap.empty[Factorizable, Int]
-    cs.foreach { c =>
-      c.vars.foreach { v =>
-        factors(v) = factors.getOrElse(v, 0) + 1
-      }
-      c.nvars.foreach { v =>
-        val nv = NegVar(v)
-        factors(nv) = factors.getOrElse(nv, 0) + 1
-      }
-      c.lnf match {
-        case LhsTop => ()
-        case LhsRefined(_, ttags, _, _) =>
-          ttags.foreach { ttg =>
-            factors(ttg) = factors.getOrElse(ttg, 0) + 1
-          }
-      }
-      c.rnf match {
-        case RhsBot | _: RhsField => ()
-        case RhsBases(ps, _, _) =>
-          ps.foreach {
-            case ttg: TraitTag =>
-              val nt = NegTrait(ttg)
-              factors(nt) = factors.getOrElse(nt, 0) + 1
-            case _ => ()
-          }
-      }
-    }
-    factors.maxByOption(_._2) match {
-      // case S((fact, n)) =>  // Very strangely, this seems to improve some StressTrait tests slightly...
-      case S((fact, n)) if n > 1 =>
-        val (factored, rest) = fact match {
-          case v: TV =>
-            cs.partitionMap(c => if (c.vars(v)) L(c) else R(c))
-          case NegVar(v) =>
-            cs.partitionMap(c => if (c.nvars(v)) L(c) else R(c))
-          case ttg: TraitTag =>
-            cs.partitionMap(c => if (c.lnf.hasTag(ttg)) L(c) else R(c))
-          case NegTrait(ttg) =>
-            cs.partitionMap(c => if (c.rnf.hasTag(ttg)) L(c) else R(c))
-        }
-        (fact & factorize(factored.map(_ - fact), sort).reduce(_ | _)) :: (
-          if (factors.sizeCompare(1) > 0 && factors.exists(f => (f._1 isnt fact) && f._2 > 1))
-            factorize(rest, sort)
-          else rest.map(_.toType(sort))
-        )
-      case _ =>
-        cs.map(_.toType(sort))
     }
   }
   
@@ -213,11 +162,11 @@ abstract class TyperHelpers { Typer: Typer =>
   def mapPol(rt: RecordType, pol: Opt[Bool], smart: Bool)(f: (Opt[Bool], SimpleType) => SimpleType): RecordType =
     RecordType(rt.fields.mapValues(_.update(f(pol.map(!_), _), f(pol, _))))(rt.prov)
   
-  def mapPol(bt: BaseType, pol: Opt[Bool], smart: Bool)(f: (Opt[Bool], SimpleType) => SimpleType): BaseType = bt match {
+  def mapPol(bt: BasicType, pol: Opt[Bool], smart: Bool)(f: (Opt[Bool], SimpleType) => SimpleType): BasicType = bt match {
     case FunctionType(lhs, rhs) => FunctionType(f(pol.map(!_), lhs), f(pol, rhs))(bt.prov)
     case TupleType(fields) => TupleType(fields.mapValues(f(pol, _)))(bt.prov)
     case ArrayType(inner) => ArrayType(f(pol, inner))(bt.prov)
-    case _: ClassTag => bt
+    case _: ObjectTag => bt
   }
   
   
@@ -268,7 +217,7 @@ abstract class TyperHelpers { Typer: Typer =>
     // }(r => s"= $r")
     
     def map(f: SimpleType => SimpleType): SimpleType = this match {
-      case TypeBounds(lb, ub) => TypeBounds(f(lb), f(ub))(prov)
+      case TypeRange(lb, ub) => TypeRange(f(lb), f(ub))(prov)
       case FunctionType(lhs, rhs) => FunctionType(f(lhs), f(rhs))(prov)
       case RecordType(fields) => RecordType(fields.mapValues(_.update(f, f)))(prov)
       case TupleType(fields) => TupleType(fields.mapValues(f))(prov)
@@ -282,11 +231,11 @@ abstract class TyperHelpers { Typer: Typer =>
     }
     def mapPol(pol: Opt[Bool], smart: Bool = false)(f: (Opt[Bool], SimpleType) => SimpleType)
           (implicit ctx: Ctx): SimpleType = this match {
-      case TypeBounds(lb, ub) if smart && pol.isDefined =>
+      case TypeRange(lb, ub) if smart && pol.isDefined =>
         if (pol.getOrElse(die)) f(S(true), ub) else f(S(false), lb)
-      case TypeBounds(lb, ub) => TypeBounds(f(S(false), lb), f(S(true), ub))(prov)
+      case TypeRange(lb, ub) => TypeRange(f(S(false), lb), f(S(true), ub))(prov)
       case rt: RecordType => Typer.mapPol(rt, pol, smart)(f)
-      case bt: BaseType => Typer.mapPol(bt, pol, smart)(f)
+      case bt: BasicType => Typer.mapPol(bt, pol, smart)(f)
       case ComposedType(kind, lhs, rhs) if smart =>
         if (kind) f(pol, lhs) | f(pol, rhs)
         else f(pol, lhs) & f(pol, rhs)
@@ -296,7 +245,7 @@ abstract class TyperHelpers { Typer: Typer =>
       case ProvType(underlying) => ProvType(f(pol, underlying))(prov)
       case ProxyType(underlying) => f(pol, underlying)
       case tr @ TypeRef(defn, targs) => TypeRef(defn, tr.mapTargs(pol)(f))(prov)
-      case _: TypeVariable | _: ObjectTag | _: ExtrType => this
+      case _: TypeVariable | _: ExtrType => this
     }
     
     def toUpper(prov: TypeProvenance): FieldType = FieldType(BotType, this)(prov)
@@ -327,9 +276,8 @@ abstract class TyperHelpers { Typer: Typer =>
         (this, that) match {
       case (TopType | RecordType(Nil), _) => that
       case (BotType, _) => BotType
-      // Unnecessary and can complicate constraint solving quite a lot:
-      // case (ComposedType(true, l, r), _) => l & that | r & that
-      case (_: ClassTag, _: FunctionType) => BotType
+      // case (ComposedType(true, l, r), _) => l & that | r & that // * Unnecessary and can complicate constraint solving quite a lot
+      // case (_: ClassTag, _: FunctionType) => BotType // * No longer true!
       case (FunctionType(l1, r1), FunctionType(l2, r2)) =>
         FunctionType(l1 | l2, r1 & r2)(prov)
       case (RecordType(fs1), RecordType(fs2)) =>
@@ -337,8 +285,8 @@ abstract class TyperHelpers { Typer: Typer =>
       case (t0 @ TupleType(fs0), t1 @ TupleType(fs1)) =>
         if (fs0.sizeCompare(fs1) =/= 0) BotType
         else TupleType(tupleIntersection(fs0, fs1))(t0.prov)
-      case (TypeBounds(l0, u0), TypeBounds(l1, u1)) =>
-        TypeBounds(l0 | l1, u0 & u1)(prov)
+      case (TypeRange(l0, u0), TypeRange(l1, u1)) =>
+        TypeRange(l0 | l1, u0 & u1)(prov)
       case _ if !swapped => that & (this, prov, swapped = true)
       case (`that`, _) => this
       case (NegType(`that`), _) => BotType
@@ -368,8 +316,8 @@ abstract class TyperHelpers { Typer: Typer =>
         case (RecordType(Nil), _) => TopType <:< that
         case (_, RecordType(Nil)) => this <:< TopType
         case (pt1 @ ClassTag(id1, ps1), pt2 @ ClassTag(id2, ps2)) => (id1 === id2) || pt1.parentsST(id2)
-        case (TypeBounds(lb, ub), _) => ub <:< that
-        case (_, TypeBounds(lb, ub)) => this <:< lb
+        case (TypeRange(lb, ub), _) => ub <:< that
+        case (_, TypeRange(lb, ub)) => this <:< lb
         case (FunctionType(l1, r1), FunctionType(l2, r2)) => assume { implicit cache =>
           l2 <:< l1 && r1 <:< r2 
         }
@@ -481,7 +429,7 @@ abstract class TyperHelpers { Typer: Typer =>
         case ProxyType(und) => pol -> und :: Nil
         case _: ObjectTag => Nil
         case tr: TypeRef => tr.mapTargs(pol)(_ -> _)
-        case TypeBounds(lb, ub) => S(false) -> lb :: S(true) -> ub :: Nil
+        case TypeRange(lb, ub) => S(false) -> lb :: S(true) -> ub :: Nil
     }}
     
     def getVarsPol(pol: Opt[Bool])(implicit ctx: Ctx): SortedMap[TypeVariable, Opt[Bool]] = {
@@ -524,7 +472,7 @@ abstract class TyperHelpers { Typer: Typer =>
       case ProxyType(und) => und :: Nil
       case _: ObjectTag => Nil
       case TypeRef(d, ts) => ts
-      case TypeBounds(lb, ub) => lb :: ub :: Nil
+      case TypeRange(lb, ub) => lb :: ub :: Nil
     }
     
     def getVars: SortedSet[TypeVariable] = {
@@ -587,7 +535,7 @@ abstract class TyperHelpers { Typer: Typer =>
       case ProxyType(und) => apply(pol)(und)
       case _: ObjectTag => ()
       case tr: TypeRef => tr.mapTargs(pol)(apply(_)(_)); ()
-      case TypeBounds(lb, ub) => apply(S(false))(lb); apply(S(true))(ub)
+      case TypeRange(lb, ub) => apply(S(false))(lb); apply(S(true))(ub)
     }
     def applyField(pol: Opt[Bool])(fld: FieldType): Unit = {
       apply(pol.map(!_))(fld.lb)

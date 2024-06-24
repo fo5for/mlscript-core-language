@@ -199,8 +199,8 @@ error : 2 & int
 error : 2 | int
 //│ res: int
 
-error : Box[int] & ~box
-//│ res: Box[int] & ~box
+error : Box[int] & ~#Box
+//│ res: nothing
 
 error : Box[?] | Box[?] & {x: '_}
 //│ res: Box[?]

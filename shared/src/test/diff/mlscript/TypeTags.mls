@@ -1,0 +1,209 @@
+
+
+class Baz: { x: int; y: int }
+//│ Defined class Baz
+
+def baz1: #Baz
+//│ baz1: #Baz
+//│     = <missing implementation>
+
+def baz2: #Baz & { x: int }
+//│ baz2: #Baz & {x: int}
+//│     = <missing implementation>
+
+// * Notice we now reconstruct the full `Baz` type:
+def baz2: #Baz & { x: int; y: int }
+//│ baz2: Baz
+//│     = <missing implementation>
+
+def baz3: #Baz & { x: 1; y: int }
+//│ baz3: Baz & {x: 1}
+//│     = <missing implementation>
+
+def baz4: #Baz & { x: 1; y: 2 }
+//│ baz4: Baz & {x: 1, y: 2}
+//│     = <missing implementation>
+
+def test01 b = case b of { Baz -> b.x }
+//│ test01: (#Baz & {x: 'x}) -> 'x
+//│       = [Function: test01]
+
+def test02 b = case b of { Baz -> b.x + b.y }
+//│ test02: Baz -> int
+//│       = [Function: test02]
+
+def test02 b = case b of { Baz -> (b.x, b.y + 1) }
+//│ test02: (Baz & {x: 'x}) -> ('x, int,)
+//│       = [Function: test021]
+
+
+class Foo[A]: { x: A; y: A }
+//│ Defined class Foo[+A]
+
+def foo: #Foo
+//│ foo: #Foo
+//│    = <missing implementation>
+
+foo12 = Foo { x = 1; y = 2 }
+//│ foo12: Foo[1 | 2] & {x: 1, y: 2}
+//│      = Foo { x: 1, y: 2 }
+
+foo = foo12
+//│ Foo[1 | 2] & {x: 1, y: 2}
+//│   <:  foo:
+//│ #Foo
+//│    = Foo { x: 1, y: 2 }
+
+
+def foo2: #Foo & { x: int; y: int }
+//│ foo2: #Foo & {x: int, y: int}
+//│     = <missing implementation>
+
+foo2 = foo12
+//│ Foo[1 | 2] & {x: 1, y: 2}
+//│   <:  foo2:
+//│ #Foo & {x: int, y: int}
+//│     = Foo { x: 1, y: 2 }
+
+
+def test1 f = case f of { Foo -> f }
+//│ test1: (#Foo & 'a) -> 'a
+//│      = [Function: test1]
+
+test1 foo
+//│ res: #Foo
+//│    = Foo { x: 1, y: 2 }
+
+test1 foo2
+//│ res: #Foo & {x: int, y: int}
+//│    = Foo { x: 1, y: 2 }
+
+def test2 f = case f of { Foo -> f.x }
+//│ test2: (#Foo & {x: 'x}) -> 'x
+//│      = [Function: test2]
+
+test2 foo12
+//│ res: 1
+//│    = 1
+
+test2 foo2
+//│ res: int
+//│    = 1
+
+
+// * Only has the tag in its type, not the field
+:e
+test2 foo
+//│ ╔══[ERROR] Type mismatch in application:
+//│ ║  l.96: 	test2 foo
+//│ ║        	^^^^^^^^^
+//│ ╟── type `#Foo` does not have field 'x'
+//│ ║  l.43: 	def foo: #Foo
+//│ ║        	         ^^^^
+//│ ╟── but it flows into reference with expected type `{x: ?x}`
+//│ ║  l.96: 	test2 foo
+//│ ║        	      ^^^
+//│ ╟── Note: constraint arises from field selection:
+//│ ║  l.81: 	def test2 f = case f of { Foo -> f.x }
+//│ ║        	                                 ^^^
+//│ ╟── from reference:
+//│ ║  l.81: 	def test2 f = case f of { Foo -> f.x }
+//│ ╙──      	                   ^
+//│ res: error
+//│    = 1
+
+// * Mistakenly passing the constructor
+:e
+foo = Foo
+//│ {x: 'x & 'A, y: 'A & 'y} -> (Foo['A] & {x: 'x, y: 'y})
+//│   <:  foo:
+//│ #Foo
+//│ ╔══[ERROR] Type mismatch in def definition:
+//│ ║  l.117: 	foo = Foo
+//│ ║         	^^^^^^^^^
+//│ ╟── reference of type `{x: ?x, y: ?y} -> (Foo[?A] & {Foo#A = ?A, x: ?x, y: ?y})` is not an instance of type `Foo`
+//│ ║  l.117: 	foo = Foo
+//│ ║         	      ^^^
+//│ ╟── Note: constraint arises from class tag:
+//│ ║  l.43: 	def foo: #Foo
+//│ ║        	         ^^^^
+//│ ╟── Note: class constructor Foo is defined at:
+//│ ║  l.40: 	class Foo[A]: { x: A; y: A }
+//│ ╙──      	      ^^^
+//│    = [Function: foo1]
+
+
+:NoJS
+
+
+def test: Foo[int] & ~#Foo
+//│ test: nothing
+test: nothing
+//│ res: nothing
+
+def test: Foo[int] & ~Foo[int]
+//│ test: nothing
+test: nothing
+//│ res: nothing
+
+type Id[A] = A
+def test: Foo[int] & ~Foo[Id[int]]
+//│ Defined type alias Id[+A]
+//│ test: Foo[int] & ~Foo[Id[int]]
+test: nothing
+//│ res: nothing
+
+// * Note: this one would only reduce to nothing if `int <: string`
+def test: Foo[int] & ~Foo[string]
+//│ test: Foo[int] & ~Foo[string]
+:e
+test: nothing
+//│ ╔══[ERROR] Type mismatch in type ascription:
+//│ ║  l.160: 	test: nothing
+//│ ║         	^^^^
+//│ ╟── type `int` is not an instance of type `string`
+//│ ║  l.157: 	def test: Foo[int] & ~Foo[string]
+//│ ║         	              ^^^
+//│ ╟── Note: constraint arises from type reference:
+//│ ║  l.157: 	def test: Foo[int] & ~Foo[string]
+//│ ╙──       	                          ^^^^^^
+//│ res: nothing
+
+
+class Bar[A]: Foo[(A, A)]
+//│ Defined class Bar[+A]
+
+def test: Bar[int] & ~#Foo
+//│ test: nothing
+test: nothing
+//│ res: nothing
+
+def test: Bar[int] & ~#Bar
+//│ test: nothing
+test: nothing
+//│ res: nothing
+
+
+class Ber[A]: Foo[(A, A)] & { x: (int, int); z: A -> A }
+//│ Defined class Ber[=A]
+
+fun (x: Ber['A]) -> (x.x, x.y, x.z)
+//│ res: Ber['A] -> ((int & 'A, int & 'A,), ('A, 'A,), 'A -> 'A,)
+
+def b: Ber[int] & Foo[123]
+//│ b: Ber[int] & Foo[123]
+
+def b: Ber[int] & #Foo & #Ber
+//│ b: Ber[int]
+
+def b: Foo[(int, int)] & #Ber & #Foo
+//│ b: Foo[(int, int,)] & #Ber
+
+b = Ber { x = (1, 1); y = (2, 2) ;z = id }
+//│ Ber['A] & {x: (1, 1,), y: (2, 2,)}
+//│   where
+//│     'A :> 1 | 2
+//│   <:  b:
+//│ Foo[(int, int,)] & #Ber
+
+

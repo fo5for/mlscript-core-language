@@ -16,8 +16,6 @@ import mlscript.Message._
 class Typer(var dbg: Boolean, var verbose: Bool, var explainErrors: Bool)
     extends TypeDefs with TypeSimplifier {
   
-  def doFactorize: Bool = false
-  
   var recordProvenances: Boolean = true
   
   type Raise = Diagnostic => Unit
@@ -216,8 +214,8 @@ class Typer(var dbg: Boolean, var verbose: Bool, var explainErrors: Bool)
       case Bot => ExtrType(true)(tyTp(ty.toLoc, "bottom type"))
       case Bounds(Bot, Top) =>
         val p = tyTp(ty.toLoc, "type wildcard")
-        TypeBounds(ExtrType(true)(p), ExtrType(false)(p))(p)
-      case Bounds(lb, ub) => TypeBounds(rec(lb), rec(ub))(tyTp(ty.toLoc, "type bounds"))
+        TypeRange(ExtrType(true)(p), ExtrType(false)(p))(p)
+      case Bounds(lb, ub) => TypeRange(rec(lb), rec(ub))(tyTp(ty.toLoc, "type bounds"))
       case Tuple(fields) =>
         TupleType(fields.mapValues(rec))(tyTp(ty.toLoc, "tuple type"))
       case Inter(lhs, rhs) => (if (simplify) rec(lhs) & (rec(rhs), _: TypeProvenance)
@@ -229,7 +227,7 @@ class Typer(var dbg: Boolean, var verbose: Bool, var explainErrors: Bool)
       case Neg(t) => NegType(rec(t))(tyTp(ty.toLoc, "type negation"))
       case Record(fs) => 
         val prov = tyTp(ty.toLoc, "record type")
-        fs.groupMap(_._1.name)(_._1).foreach { case s -> fieldNames if fieldNames.size > 1 => err(
+        fs.groupMap(_._1.name)(_._1).foreach { case s -> fieldNames if fieldNames.sizeIs > 1 => err(
             msg"Multiple declarations of field name ${s} in ${prov.desc}" -> ty.toLoc
               :: fieldNames.map(tp => msg"Declared at" -> tp.toLoc))(raise)
           case _ =>
@@ -248,28 +246,30 @@ class Typer(var dbg: Boolean, var verbose: Bool, var explainErrors: Bool)
           case AbstractConstructor(_, _) => die
           case t: TypeScheme => t.instantiate
         }
+      case tn @ TypeTag(name) =>
+        val tyLoc = ty.toLoc
+        (typeNamed(tyLoc, name), ctx.tyDefs.get(name)) match {
+          case (R((kind, _)), S(td)) => kind match {
+            case Cls => clsNameToNomTag(td)(tyTp(tyLoc, "class tag"), ctx)
+            case Trt => trtNameToNomTag(td)(tyTp(tyLoc, "trait tag"), ctx)
+            case Als => err(
+              msg"Type alias ${name} cannot be used as a type tag", tyLoc)(raise)
+          }
+          case (L(e), _) => e()
+          case (_, N) => die
+        }
       case tn @ TypeName(name) =>
         val tyLoc = ty.toLoc
         val tpr = tyTp(tyLoc, "type reference")
-        vars.get(name).getOrElse {
+        vars.getOrElse(name, {
           typeNamed(tyLoc, name) match {
             case R((_, tpnum)) =>
               if (tpnum =/= 0) {
                 err(msg"Type $name takes parameters", tyLoc)(raise)
               } else TypeRef(tn, Nil)(tpr)
-            case L(e) =>
-              if (name.isEmpty || !name.head.isLower) e()
-              else (typeNamed(tyLoc, name.capitalize), ctx.tyDefs.get(name.capitalize)) match {
-                case (R((kind, _)), S(td)) => kind match {
-                  case Cls => clsNameToNomTag(td)(tyTp(tyLoc, "class tag"), ctx)
-                  case Trt => trtNameToNomTag(td)(tyTp(tyLoc, "trait tag"), ctx)
-                  case Als => err(
-                    msg"Type alias ${name.capitalize} cannot be used as a type tag", tyLoc)(raise)
-                }
-                case _ => e()
-              }
+            case L(e) => e()
           }
-        }
+        })
       case tv: TypeVar =>
         recVars.getOrElse(tv,
           localVars.getOrElseUpdate(tv, freshVar(noProv, tv.identifier.toOption))
@@ -434,10 +434,9 @@ class Typer(var dbg: Boolean, var verbose: Bool, var explainErrors: Bool)
           con(ty_ty, trm_ty, ty_ty) // In patterns, we actually _unify_ the pattern and ascribed type 
         else ty_ty
       case (v @ ValidPatVar(nme)) =>
-        val prov = tp(if (verboseConstraintProvenanceHints) v.toLoc else N, "variable")
         // Note: only look at ctx.env, and not the outer ones!
         ctx.env.get(nme).collect { case ts: TypeScheme => ts.instantiate }
-          .getOrElse(new TypeVariable(lvl, Nil, Nil)(prov).tap(ctx += nme -> _))
+          .getOrElse(new TypeVariable(lvl, Nil, Nil)(noProv).tap(ctx += nme -> _))
       case v @ ValidVar(name) =>
         val ty = ctx.get(name).fold(err("identifier not found: " + name, term.toLoc): TypeScheme) {
           case AbstractConstructor(absMths, isTrait) =>
@@ -463,7 +462,7 @@ class Typer(var dbg: Boolean, var verbose: Bool, var explainErrors: Bool)
         typeTerm(lhs) & (typeTerm(rhs), prov)
       case Rcd(fs) =>
         val prov = tp(term.toLoc, "record literal")
-        fs.groupMap(_._1.name)(_._1).foreach { case s -> fieldNames if fieldNames.size > 1 => err(
+        fs.groupMap(_._1.name)(_._1).foreach { case s -> fieldNames if fieldNames.sizeIs > 1 => err(
             msg"Multiple declarations of field name ${s} in ${prov.desc}" -> term.toLoc
               :: fieldNames.map(tp => msg"Declared at" -> tp.toLoc))(raise)
           case _ =>
@@ -678,7 +677,14 @@ class Typer(var dbg: Boolean, var verbose: Bool, var explainErrors: Bool)
         case ExtrType(false) => Top
         case ProxyType(und) => go(und)
         case tag: ObjectTag => tag.id match {
-          case Var(n) => TypeName(n)
+          case Var(n) =>
+            if (primitiveTypes.contains(n) // primitives like `int` are internally maintained as class tags
+              // || n.isCapitalized // rigid type params like A in class Foo[A]
+                                    // – but now normal class tags are capitalized so we can't do this anymore
+              || n.startsWith("'") // rigid type varibales
+              || n === "this" // `this` type
+            ) TypeName(n)
+            else TypeTag(n)
           case lit: Lit => Literal(lit)
         }
         case TypeRef(td, Nil) => td
@@ -686,7 +692,7 @@ class Typer(var dbg: Boolean, var verbose: Bool, var explainErrors: Bool)
           case ta @ ((S(true), TopType) | (S(false), BotType)) => Bounds(Bot, Top)
           case (_, ty) => go(ty)
         })
-        case TypeBounds(lb, ub) => Bounds(go(lb), go(ub))
+        case TypeRange(lb, ub) => Bounds(go(lb), go(ub))
     }
     // }(r => s"~> $r")
     

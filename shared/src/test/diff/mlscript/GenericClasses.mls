@@ -125,7 +125,7 @@ error: Foo2[int]
 //│   Error: unexpected runtime error
 
 f = fun x -> case x of { Foo2 -> x }
-//│ f: (Foo2[?] & 'a) -> 'a
+//│ f: (#Foo2 & 'a) -> 'a
 //│  = [Function: f]
 
 f (Foo2 {})
@@ -147,16 +147,16 @@ f: (Foo2[?] & 'a) -> 'a
 //│ res: (Foo2[?] & 'a) -> 'a
 //│   where
 //│     'a :> Foo2[?] & 'a
-//│        <: (foo2 | ~{Foo2#A} | ~foo2 | ~(foo2 & {Foo2#A})) & (foo2 | ~(foo2 & {Foo2#A}))
+//│        <: (#Foo2 | ~{Foo2#A} | ~#Foo2 | ~(#Foo2 & {Foo2#A})) & (#Foo2 | ~(#Foo2 & {Foo2#A}))
 //│    = [Function: f]
 
 f
-//│ res: (Foo2[?] & 'a) -> 'a
+//│ res: (#Foo2 & 'a) -> 'a
 //│    = [Function: f]
 
 
 def mrg: Foo2[int] & Foo2[string]
-//│ mrg: Foo2[in int | string out nothing]
+//│ mrg: Foo2[int] & Foo2[string]
 //│    = <missing implementation>
 
 mrg: Foo2[int]
@@ -168,7 +168,7 @@ mrg: Foo2[int]
 mrg = Foo2{}
 //│ Foo2['A]
 //│   <:  mrg:
-//│ Foo2[in int | string out nothing]
+//│ Foo2[int] & Foo2[string]
 //│ ╔══[ERROR] Type mismatch in def definition:
 //│ ║  l.168: 	mrg = Foo2{}
 //│ ║         	^^^^^^^^^^^^
@@ -193,7 +193,7 @@ mrg = Foo2{}
 //│    = Foo2 {}
 
 def mrg: Foo2[int] | Foo2[string]
-//│ mrg: Foo2[out int | string]
+//│ mrg: Foo2[int] | Foo2[string]
 //│    = <missing implementation>
 
 
@@ -216,7 +216,7 @@ error: Foo2_Co[int]
 //│   Error: unexpected runtime error
 
 f = fun x -> case x of { Foo2_Co -> x }
-//│ f: (Foo2_Co[?] & 'a) -> 'a
+//│ f: (#Foo2_Co & 'a) -> 'a
 //│  = [Function: f1]
 
 f (Foo2_Co {})
@@ -238,16 +238,16 @@ f: (Foo2_Co[?] & 'a) -> 'a
 //│ res: (Foo2_Co[?] & 'a) -> 'a
 //│   where
 //│     'a :> Foo2_Co[?] & 'a
-//│        <: (foo2_Co | ~{Foo2_Co#A} | ~foo2_Co | ~(foo2_Co & {Foo2_Co#A})) & (foo2_Co | ~(foo2_Co & {Foo2_Co#A}))
+//│        <: (#Foo2_Co | ~{Foo2_Co#A} | ~#Foo2_Co | ~(#Foo2_Co & {Foo2_Co#A})) & (#Foo2_Co | ~(#Foo2_Co & {Foo2_Co#A}))
 //│    = [Function: f1]
 
 f
-//│ res: (Foo2_Co[?] & 'a) -> 'a
+//│ res: (#Foo2_Co & 'a) -> 'a
 //│    = [Function: f1]
 
 
 def mrg: Foo2_Co[int] & Foo2_Co[string]
-//│ mrg: Foo2_Co[nothing]
+//│ mrg: Foo2_Co[int & string]
 //│    = <missing implementation>
 
 mrg: Foo2_Co[int]
@@ -258,11 +258,11 @@ mrg: Foo2_Co[int]
 mrg = Foo2_Co{}
 //│ Foo2_Co[nothing]
 //│   <:  mrg:
-//│ Foo2_Co[nothing]
+//│ Foo2_Co[int & string]
 //│    = Foo2_Co {}
 
 def mrg: Foo2_Co[int] | Foo2_Co[string]
-//│ mrg: Foo2_Co[int | string]
+//│ mrg: Foo2_Co[int] | Foo2_Co[string]
 //│    = <missing implementation>
 
 
@@ -288,7 +288,7 @@ error: Foo2_Bi[int]
 //│   Error: unexpected runtime error
 
 f = fun x -> case x of { Foo2_Bi -> x }
-//│ f: (Foo2_Bi[?] & 'a) -> 'a
+//│ f: (#Foo2_Bi & 'a) -> 'a
 //│  = [Function: f2]
 
 f (Foo2_Bi {})
@@ -310,11 +310,11 @@ f: (Foo2_Bi[?] & 'a) -> 'a
 //│ res: (Foo2_Bi[?] & 'a) -> 'a
 //│   where
 //│     'a :> Foo2_Bi[?] & 'a
-//│        <: (foo2_Bi | ~{Foo2_Bi#A} | ~foo2_Bi | ~(foo2_Bi & {Foo2_Bi#A})) & (foo2_Bi | ~(foo2_Bi & {Foo2_Bi#A}))
+//│        <: (#Foo2_Bi | ~{Foo2_Bi#A} | ~#Foo2_Bi | ~(#Foo2_Bi & {Foo2_Bi#A})) & (#Foo2_Bi | ~(#Foo2_Bi & {Foo2_Bi#A}))
 //│    = [Function: f2]
 
 f
-//│ res: (Foo2_Bi[?] & 'a) -> 'a
+//│ res: (#Foo2_Bi & 'a) -> 'a
 //│    = [Function: f2]
 
 

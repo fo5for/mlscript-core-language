@@ -20,7 +20,7 @@ def f v = case v of {
     A -> (v.x : int)
   | _ -> 0
  }
-//│ f: (A & {x: int} | ~A) -> int
+//│ f: (A & {x: int} | ~#A) -> int
 //│  = [Function: f1]
 
 a1 = A { x = 0 }
@@ -109,7 +109,7 @@ rec def eval(e) = case e of
   }
 //│ eval: 'a -> 'value
 //│   where
-//│     'a <: IntLit & {value: 'value} | Pair[?, ?] & {lhs: 'a, rhs: 'a}
+//│     'a <: #IntLit & {value: 'value} | #Pair & {lhs: 'a, rhs: 'a}
 //│     'value :> ('value, 'value,)
 //│     = [Function: eval]
 
@@ -120,14 +120,14 @@ rec def eval(e) = case e of
   }
 //│ eval: 'a -> 'value
 //│   where
-//│     'a <: IntLit & {value: 'value} | Pair[?, ?] & {lhs: 'a, rhs: 'a} | ~IntLit & ~Pair[?, ?]
+//│     'a <: #IntLit & {value: 'value} | #Pair & {lhs: 'a, rhs: 'a} | ~#IntLit & ~#Pair
 //│     'value :> ('value, 'value,)
 //│     = [Function: eval1]
 
 eval (IntLit { value = 1 })
 //│ res: 'a
 //│   where
-//│     'a :> ('a, 'a,) | 1
+//│     'a :> 1 | ('a, 'a,)
 //│    = 1
 
 eval (Pair {
@@ -135,7 +135,7 @@ eval (Pair {
   rhs = IntLit { value = 2 } })
 //│ res: 'a
 //│   where
-//│     'a :> ('a, 'a,) | 1 | 2
+//│     'a :> 1 | 2 | ('a, 'a,)
 //│    = [ 1, 2 ]
 
 p = Pair {
@@ -152,7 +152,7 @@ p = Pair {
 ep = eval p
 //│ ep: 'a
 //│   where
-//│     'a :> ('a, 'a,) | 1 | 2 | 3
+//│     'a :> 1 | 2 | 3 | ('a, 'a,)
 //│   = [ 1, [ 2, 3 ] ]
 
 
@@ -221,7 +221,7 @@ ep[0]
 //│ ╙──      	^^
 //│ res: error | undefined | 'a
 //│   where
-//│     'a :> ('a, 'a,) | 1 | 2 | 3
+//│     'a :> 1 | 2 | 3 | ('a, 'a,)
 
 
 eval (Pair {
@@ -248,7 +248,7 @@ eval (Pair {
 //│ ╙──      	                                   ^^^
 //│ res: 'a
 //│   where
-//│     'a :> ('a, 'a,) | 1 | Pair[?, ?] & {lhs: IntLit & {value: 2}, rhs: IntLit & {value: 3}}
+//│     'a :> 1 | Pair[?, ?] & {lhs: IntLit & {value: 2}, rhs: IntLit & {value: 3}} | ('a, 'a,)
 
 
 p = Pair2 {
@@ -269,7 +269,7 @@ rec def eval(e) = case e of
   }
 //│ 'a -> 'value
 //│   where
-//│     'a <: IntLit & {value: 'value} | Pair[?, ?] & {lhs: 'a, rhs: 'a}
+//│     'a <: #IntLit & {value: 'value} | #Pair & {lhs: 'a, rhs: 'a}
 //│     'value :> ('value, 'value,)
 //│   <:  eval:
 //│ Expr[?] -> nothing
@@ -282,7 +282,7 @@ rec def eval(e) = case e of
 //│ ║        	^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 //│ ║  l.+4: 	  }
 //│ ║        	^^^
-//│ ╟── type `Expr[?]` does not match type `IntLit & ?a | Pair[?, ?] & ?b`
+//│ ╟── type `Expr[?]` does not match type `#IntLit & ?a | #Pair & ?b`
 //│ ║  l.263: 	def eval: Expr['a] -> 'a
 //│ ║         	          ^^^^^^^^
 //│ ╟── Note: constraint arises from reference:
@@ -297,7 +297,7 @@ rec def eval(e) = case e of
 //│ ║        	^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 //│ ║  l.+4: 	  }
 //│ ║        	^^^
-//│ ╟── expression of type `Expr[?] & ~intLit` does not have field 'rhs'
+//│ ╟── expression of type `Expr[?] & ~#IntLit` does not have field 'rhs'
 //│ ╟── Note: constraint arises from field selection:
 //│ ║  l.+3: 	  | Pair -> (eval e.lhs, eval e.rhs)
 //│ ║        	                              ^^^^^
@@ -313,7 +313,7 @@ rec def eval(e) = case e of
 //│ ║        	^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 //│ ║  l.+4: 	  }
 //│ ║        	^^^
-//│ ╟── expression of type `Expr[?] & ~intLit` does not have field 'lhs'
+//│ ╟── expression of type `Expr[?] & ~#IntLit` does not have field 'lhs'
 //│ ╟── Note: constraint arises from field selection:
 //│ ║  l.+3: 	  | Pair -> (eval e.lhs, eval e.rhs)
 //│ ║        	                  ^^^^^
@@ -329,7 +329,7 @@ rec def eval(e) = case e of
 //│ ║        	^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 //│ ║  l.+4: 	  }
 //│ ║        	^^^
-//│ ╟── expression of type `Expr[?] & ~pair | Expr[?] & ~?a` does not have field 'value'
+//│ ╟── expression of type `Expr[?] & ~#Pair | Expr[?] & ~?a` does not have field 'value'
 //│ ╟── Note: constraint arises from field selection:
 //│ ║  l.+2: 	  { IntLit -> e.value
 //│ ║        	              ^^^^^^^
@@ -359,7 +359,7 @@ rec def eval(e) = case e of
   }
 //│ 'a -> 'value
 //│   where
-//│     'a <: IntLit & {value: 'value} | Pair[?, ?] & {lhs: 'a, rhs: 'a} | ~IntLit & ~Pair[?, ?]
+//│     'a <: #IntLit & {value: 'value} | #Pair & {lhs: 'a, rhs: 'a} | ~#IntLit & ~#Pair
 //│     'value :> ('value, 'value,)
 //│   <:  eval:
 //│ Expr[?] -> nothing
@@ -374,7 +374,7 @@ rec def eval(e) = case e of
 //│ ║        	^^^^^^^^^^^^^^
 //│ ║  l.+5: 	  }
 //│ ║        	^^^
-//│ ╟── expression of type `Expr[?] & ~intLit & ~?a | Pair[?, ?]` does not have field 'rhs'
+//│ ╟── expression of type `Expr[?] & ~#IntLit & ~?a | #Pair & {Expr#A}` does not have field 'rhs'
 //│ ╟── Note: constraint arises from field selection:
 //│ ║  l.+3: 	  | Pair -> (eval e.lhs, eval e.rhs)
 //│ ║        	                              ^^^^^
@@ -392,7 +392,7 @@ rec def eval(e) = case e of
 //│ ║        	^^^^^^^^^^^^^^
 //│ ║  l.+5: 	  }
 //│ ║        	^^^
-//│ ╟── expression of type `Expr[?] & ~intLit & ~?a | Pair[?, ?]` does not have field 'lhs'
+//│ ╟── expression of type `Expr[?] & ~#IntLit & ~?a | #Pair & {Expr#A}` does not have field 'lhs'
 //│ ╟── Note: constraint arises from field selection:
 //│ ║  l.+3: 	  | Pair -> (eval e.lhs, eval e.rhs)
 //│ ║        	                  ^^^^^
@@ -410,7 +410,7 @@ rec def eval(e) = case e of
 //│ ║        	^^^^^^^^^^^^^^
 //│ ║  l.+5: 	  }
 //│ ║        	^^^
-//│ ╟── expression of type `IntLit | Pair[?, ?] & ~pair | Pair[?, ?] & ~?a | ~?b & (Expr[?] & ~pair | Expr[?] & ~?a)` does not have field 'value'
+//│ ╟── expression of type `Expr[?] & ~#Pair & ~?a | #IntLit & {Expr#A} | ~?b & (Expr[?] & ~?a | #Pair & {Expr#A})` does not have field 'value'
 //│ ╟── Note: constraint arises from field selection:
 //│ ║  l.+2: 	  { IntLit -> e.value
 //│ ║        	              ^^^^^^^

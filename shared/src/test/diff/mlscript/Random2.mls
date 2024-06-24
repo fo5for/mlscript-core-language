@@ -89,8 +89,8 @@ def Some v = Some{v}
 
 def foo(x: Some['a]) =
   let _ = x.v : Some[?]
-  in x: Some['a & some]
-//│ foo: Some[Some[nothing] & 'a] -> Some[Some[?] & 'a]
+  in x: Some['a & #Some]
+//│ foo: Some[Some[nothing] & 'a] -> Some[#Some & 'a]
 
 def f: Some['a]
 //│ f: Some[nothing]
@@ -106,7 +106,7 @@ def foo(x: 'a, y: 'a) = (x + 1, y)
 
 def foo(f: 'a -> 'a, x: 'a) =
   let _ = x + 1
-  in error: Some['a & some]
+  in error: Some['a & #Some]
 //│ foo: ('a -> 'a, int,) -> Some[nothing]
 
 

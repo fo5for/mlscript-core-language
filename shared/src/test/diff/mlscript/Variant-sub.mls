@@ -12,7 +12,7 @@ def None = None{}
 
 def flatMap = fun f -> fun opt ->
   case opt of { Some -> f opt.v | None -> opt }
-//│ flatMap: ('v -> 'a) -> (None & 'a | Some[?] & {v: 'v}) -> 'a
+//│ flatMap: ('v -> 'a) -> (None & 'a | #Some & {v: 'v}) -> 'a
 //│        = [Function: flatMap]
 
 f x = Some x
@@ -30,13 +30,13 @@ flatMap f "oops"
 //│ ╔══[ERROR] Type mismatch in application:
 //│ ║  l.29: 	flatMap f "oops"
 //│ ║        	^^^^^^^^^^^^^^^^
-//│ ╟── string literal of type `"oops"` does not match type `None & ?a | Some[?] & ?b`
+//│ ╟── string literal of type `"oops"` does not match type `None & ?a | #Some & ?b`
 //│ ║  l.29: 	flatMap f "oops"
 //│ ║        	          ^^^^^^
 //│ ╟── Note: constraint arises from reference:
 //│ ║  l.14: 	  case opt of { Some -> f opt.v | None -> opt }
 //│ ╙──      	       ^^^
-//│ res: error | Some[nothing]
+//│ res: Some[nothing] | error
 //│ Runtime error:
 //│   Error: non-exhaustive case expression
 

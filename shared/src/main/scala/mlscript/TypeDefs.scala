@@ -37,15 +37,16 @@ class TypeDefs extends ConstraintSolver { self: Typer =>
     toLoc: Opt[Loc],
   ) {
     def allBaseClasses(ctx: Ctx)(implicit traversed: Set[TypeName]): Set[TypeName] =
-      baseClasses.map(v => TypeName(v.name.decapitalize)) ++
+      baseClasses.map(v => TypeName(v.name)) ++
         baseClasses.iterator.filterNot(traversed).flatMap(v =>
           ctx.tyDefs.get(v.name).fold(Set.empty[TypeName])(_.allBaseClasses(ctx)(traversed + v)))
     val (tparams: List[TypeName], targs: List[TypeVariable]) = tparamsargs.unzip
     val thisTv: TypeVariable = freshVar(noProv, S("this"), Nil, TypeRef(nme, targs)(noProv) :: Nil)(1)
     var tvarVariances: Opt[VarianceStore] = N
     def getVariancesOrDefault: collection.Map[TV, VarianceInfo] =
-      tvarVariances.getOrElse(Map.empty[TV, VarianceInfo].withDefaultValue(VarianceInfo.in))
+      tvarVariances.getOrElse(noVarianceInfo)
   }
+  private val noVarianceInfo = Map.empty[TV, VarianceInfo].withDefaultValue(VarianceInfo.in)
   
   /** Represent a set of methods belonging to some owner type.
     * This includes explicitly declared/defined as well as inherited methods. */
@@ -105,11 +106,11 @@ class TypeDefs extends ConstraintSolver { self: Typer =>
   
   def clsNameToNomTag(td: TypeDef)(prov: TypeProvenance, ctx: Ctx): ClassTag = {
     require(td.kind is Cls)
-    ClassTag(Var(td.nme.name.decapitalize), ctx.allBaseClassesOf(td.nme.name))(prov)
+    ClassTag(Var(td.nme.name), ctx.allBaseClassesOf(td.nme.name))(prov)
   }
   def trtNameToNomTag(td: TypeDef)(prov: TypeProvenance, ctx: Ctx): TraitTag = {
     require(td.kind is Trt)
-    TraitTag(Var(td.nme.name.decapitalize))(prov)
+    TraitTag(Var(td.nme.name))(prov)
   }
   
   def baseClassesOf(tyd: mlscript.TypeDef): Set[TypeName] =
@@ -138,7 +139,7 @@ class TypeDefs extends ConstraintSolver { self: Typer =>
         mergeMap(fieldsOf(l, paramTags), fieldsOf(r, paramTags))(_ && _)
       case RecordType(fs) => fs.toMap
       case p: ProxyType => fieldsOf(p.underlying, paramTags)
-      case TypeBounds(lb, ub) => fieldsOf(ub, paramTags)
+      case TypeRange(lb, ub) => fieldsOf(ub, paramTags)
       case _: ObjectTag | _: FunctionType | _: ArrayBase | _: TypeVariable
         | _: NegType | _: ExtrType | _: ComposedType => Map.empty
     }
@@ -165,7 +166,7 @@ class TypeDefs extends ConstraintSolver { self: Typer =>
       allDefs.get(n).foreach { other =>
         err(msg"Type '$n' is already defined.", td.nme.toLoc)
       }
-      td.tparams.groupBy(_.name).foreach { case s -> tps if tps.size > 1 => err(
+      td.tparams.groupBy(_.name).foreach { case s -> tps if tps.sizeIs > 1 => err(
           msg"Multiple declarations of type parameter ${s} in ${td.kind.str} definition" -> td.toLoc
             :: tps.map(tp => msg"Declared at" -> tp.toLoc))
         case _ =>
@@ -195,7 +196,7 @@ class TypeDefs extends ConstraintSolver { self: Typer =>
             td.mthDefs.iterator.map(md => md.nme.copy().withLocOf(md)).toSet)
           ) { case ((decls1, defns1), (decls2, defns2)) => (
             (decls1.toSeq ++ decls2.toSeq).groupBy(identity).map { case (mn, mns) =>
-              if (mns.size > 1) Var(mn.name).withLoc(td.toLoc) else mn }.toSet,
+              if (mns.sizeIs > 1) Var(mn.name).withLoc(td.toLoc) else mn }.toSet,
             defns1 ++ defns2
           )}
         
@@ -209,7 +210,7 @@ class TypeDefs extends ConstraintSolver { self: Typer =>
           case ComposedType(_, l, r) => checkCycle(l) && checkCycle(r)
           case NegType(u) => checkCycle(u)
           case p: ProxyType => checkCycle(p.underlying)
-          case TypeBounds(lb, ub) => checkCycle(lb) && checkCycle(ub)
+          case TypeRange(lb, ub) => checkCycle(lb) && checkCycle(ub)
           case tv: TypeVariable => travsersed(R(tv)) || {
             val t2 = travsersed + R(tv)
             tv.lowerBounds.forall(checkCycle(_)(t2)) && tv.upperBounds.forall(checkCycle(_)(t2))
@@ -261,7 +262,7 @@ class TypeDefs extends ConstraintSolver { self: Typer =>
               case _: ArrayType => 
                 err(msg"cannot inherit from a array type", prov.loco)
                 false
-              case _: TypeBounds =>
+              case _: TypeRange =>
                 err(msg"cannot inherit from type bounds", prov.loco)
                 false
               case _: RecordType | _: ExtrType => true
@@ -366,7 +367,7 @@ class TypeDefs extends ConstraintSolver { self: Typer =>
           // This is because implicit method calls always default to the parent methods.
           case S(MethodType(_, _, parents, _)) if {
             val bcs = ctx.allBaseClassesOf(tn.name)
-            parents.forall(prt => bcs(TypeName(prt.name.decapitalize)))
+            parents.forall(prt => bcs(TypeName(prt.name)))
           } =>
           // If this class is one of the base classes of the parent(s) of the currently registered method,
           // then we need to register the new method. Only happens when the class definitions are "out-of-order",
@@ -379,7 +380,7 @@ class TypeDefs extends ConstraintSolver { self: Typer =>
             // class A
             //   method F: int
           case S(MethodType(_, _, parents, _)) if {
-            val v = TypeName(tn.name.decapitalize)
+            val v = TypeName(tn.name)
             parents.forall(prt => ctx.allBaseClassesOf(prt.name).contains(v)) 
           } => ctx.addMth(N, mn, mthTy)
           // If this class is unrelated to the parent(s) of the currently registered method,
@@ -485,7 +486,7 @@ class TypeDefs extends ConstraintSolver { self: Typer =>
                 case N =>
               }
               tparams.groupBy(_.name).foreach {
-                case s -> tps if tps.size > 1 => err(
+                case s -> tps if tps.sizeIs > 1 => err(
                   msg"Multiple declarations of type parameter ${s} in ${prov.desc}" -> md.toLoc ::
                   tps.map(tp => msg"Declared at" -> tp.toLoc))
                 case _ =>
@@ -631,7 +632,7 @@ class TypeDefs extends ConstraintSolver { self: Typer =>
           case ComposedType(pol, lhs, rhs) =>
             updateVariance(lhs, curVariance)
             updateVariance(rhs, curVariance)
-          case TypeBounds(lb, ub) =>
+          case TypeRange(lb, ub) =>
             updateVariance(lb, VarianceInfo.contra)
             updateVariance(ub, VarianceInfo.co)
           case ArrayType(inner) => updateVariance(inner, curVariance)

@@ -85,14 +85,13 @@ abstract class TyperDatatypes extends TyperHelpers { self: Typer =>
   }
   type ST = SimpleType
   
-  sealed abstract class BaseTypeOrTag extends SimpleType
-  sealed abstract class BaseType extends BaseTypeOrTag {
-    def toRecord: RecordType = RecordType.empty
-  }
-  sealed abstract class MiscBaseType extends BaseType
+  sealed abstract class BasicType extends SimpleType
+  
+  sealed abstract class FunOrArrType extends BasicType
+  
   sealed trait Factorizable extends SimpleType
   
-  case class FunctionType(lhs: SimpleType, rhs: SimpleType)(val prov: TypeProvenance) extends MiscBaseType {
+  case class FunctionType(lhs: SimpleType, rhs: SimpleType)(val prov: TypeProvenance) extends FunOrArrType {
     lazy val level: Int = lhs.level max rhs.level
     override def toString = s"(${lhs match {
       case TupleType((N, f) :: Nil) => ""+f
@@ -125,7 +124,7 @@ abstract class TyperDatatypes extends TyperHelpers { self: Typer =>
       if (fields.isEmpty) ExtrType(false)(prov) else RecordType(fields)(prov)
   }
   
-  sealed abstract class ArrayBase extends MiscBaseType {
+  sealed abstract class ArrayBase extends FunOrArrType {
     def inner: SimpleType
   }
 
@@ -138,17 +137,8 @@ abstract class TyperDatatypes extends TyperHelpers { self: Typer =>
     lazy val inner: SimpleType = fields.map(_._2).reduceLeftOption(_ | _).getOrElse(BotType)
     lazy val level: Int = fields.iterator.map(_._2.level).maxOption.getOrElse(0)
     lazy val toArray: ArrayType = ArrayType(inner)(prov)  // upcast to array
-    override lazy val toRecord: RecordType =
-      RecordType(
-        fields.zipWithIndex.map { case ((_, t), i) => (Var("_"+(i+1)), t.toUpper(t.prov)) }
-        // Note: In line with TypeScript, tuple field names are pure type system fictions,
-        //    with no runtime existence. Therefore, they should not be included in the record type
-        //    corresponding to this tuple type.
-        //    i.e., no `::: fields.collect { case (S(n), t) => (n, t) }`
-      )(prov)
     override def toString =
       s"(${fields.map(f => s"${f._1.fold("")(_.name+": ")}${f._2},").mkString(" ")})"
-    // override def toString = s"(${fields.map(f => s"${f._1.fold("")(_+": ")}${f._2},").mkString(" ")})"
   }
   
   /** Polarity `pol` being `true` means Bot; `false` means Top. These are extrema of the subtyping lattice. */
@@ -204,7 +194,7 @@ abstract class TyperDatatypes extends TyperHelpers { self: Typer =>
             tparamField(defn, tp) -> FieldType(
               if (tvv(tv).isCovariant) BotType else tv,
               if (tvv(tv).isContravariant) TopType else tv)(prov)
-          }.toList)(noProv)
+          })(noProv)
         else TopType
       subst(td.kind match {
         case Als => td.bodyTy
@@ -228,7 +218,7 @@ abstract class TyperDatatypes extends TyperHelpers { self: Typer =>
         (td.tparamsargs lazyZip targs).map { case ((_, tv), ta) =>
           tvv(tv) match {
             case VarianceInfo(true, true) =>
-              f(N, TypeBounds(BotType, TopType)(noProv))
+              f(N, TypeRange(BotType, TopType)(noProv))
             case VarianceInfo(co, contra) =>
               f(if (co) pol else if (contra) pol.map(!_) else N, ta)
           }
@@ -241,12 +231,12 @@ abstract class TyperDatatypes extends TyperHelpers { self: Typer =>
     }
   }
   
-  sealed trait ObjectTag extends BaseTypeOrTag with Ordered[ObjectTag] {
+  sealed abstract class ObjectTag extends BasicType with Ordered[ObjectTag] {
     val id: SimpleTerm
     def compare(that: ObjectTag): Int = this.id compare that.id
   }
   
-  case class ClassTag(id: SimpleTerm, parents: Set[TypeName])(val prov: TypeProvenance) extends BaseType with ObjectTag {
+  case class ClassTag(id: SimpleTerm, parents: Set[TypeName])(val prov: TypeProvenance) extends ObjectTag {
     lazy val parentsST = parents.iterator.map(tn => Var(tn.name)).toSet[SimpleTerm]
     def glb(that: ClassTag): Opt[ClassTag] =
       if (that.id === this.id) S(this)
@@ -254,27 +244,36 @@ abstract class TyperDatatypes extends TyperHelpers { self: Typer =>
       else if (this.parentsST.contains(that.id)) S(this)
       else N
     def level: Int = 0
-    override def toString = showProvOver(false)(id.idStr+s"<${parents.mkString(",")}>")
+    override def toString = showProvOver(false)("#" + id.idStr + s"<${parents.map(_.show).mkString(",")}>")
   }
   
-  case class TraitTag(id: SimpleTerm)(val prov: TypeProvenance) extends BaseTypeOrTag with ObjectTag with Factorizable {
+  case class TraitTag(id: SimpleTerm)(val prov: TypeProvenance) extends ObjectTag with Factorizable {
     def level: Int = 0
-    override def toString = id.idStr
+    override def toString = "#" + id.idStr
   }
   
-  /** `TypeBounds(lb, ub)` represents an unknown type between bounds `lb` and `ub`.
-    * The only way to give something such a type is to make the type part of a def or method signature,
-    * as it will be replaced by a fresh bounded type variable upon subsumption checking (cf rigidification). */
-  case class TypeBounds(lb: SimpleType, ub: SimpleType)(val prov: TypeProvenance) extends SimpleType {
+  /** `TypeRange(lb, ub)` represents an unknown type between bounds `lb` and `ub`,
+    * where `lb` is in negative position and `ub` is in positive position.
+    * For this type to be meaningful, it is necessary that `lb` be a subtype of `ub` by construction.
+    * Currently, there are essentially two ways these types are introduced:
+    * - During type extrusion, when extruding a variable occurring in neutral position:
+    *   here, we create a type bound to recover the polarity needed to do the extrusion.
+    *   This is correct because the negative extrusion of a type should be a subtype of its positive extrusion.
+    * - In user-entered wildcard types `?`, which are interpreted as `TypeRange(Bot, Top)`.
+    *   These are also treated as definition-level existentials,
+    *   in that when checking an inferred type against a signature, which is done in the `subsume` method,
+    *   each wildcard or type range is replaced by a fresh type variable bounded between `lb` and `ub`
+    *   (this happens in rigidification). */
+  case class TypeRange(lb: SimpleType, ub: SimpleType)(val prov: TypeProvenance) extends SimpleType {
     def level: Int = lb.level max ub.level
     override def toString = s"$lb..$ub"
   }
-  object TypeBounds {
+  object TypeRange {
     final def mk(lb: SimpleType, ub: SimpleType, prov: TypeProvenance = noProv)(implicit ctx: Ctx): SimpleType =
       if ((lb is ub) || lb === ub || lb <:< ub && ub <:< lb) lb else (lb, ub) match {
-        case (TypeBounds(lb, _), ub) => mk(lb, ub, prov)
-        case (lb, TypeBounds(_, ub)) => mk(lb, ub, prov)
-        case _ => TypeBounds(lb, ub)(prov)
+        case (TypeRange(lb, _), ub) => mk(lb, ub, prov)
+        case (lb, TypeRange(_, ub)) => mk(lb, ub, prov)
+        case _ => TypeRange(lb, ub)(prov)
       }
   }
   

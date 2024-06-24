@@ -9,7 +9,7 @@ class Hidden[A]
 //│ ╔══[ERROR] Type mismatch in application:
 //│ ║  l.8: 	  method Main (a: A) = this.Foo a
 //│ ║       	                       ^^^^^^^^^^^
-//│ ╟── expression of type `A & (Class1 | ~?a)` does not have field 'payload'
+//│ ╟── expression of type `#A & (#Class1 | ~?a)` does not have field 'payload'
 //│ ╟── Note: constraint arises from field selection:
 //│ ║  l.7: 	  method Foo s = case s of { Class1 -> s.payload | _ -> 123 }
 //│ ║       	                                       ^^^^^^^^^
@@ -17,7 +17,7 @@ class Hidden[A]
 //│ ║  l.7: 	  method Foo s = case s of { Class1 -> s.payload | _ -> 123 }
 //│ ╙──     	                      ^
 //│ Defined class Hidden[-A]
-//│ Defined Hidden.Foo: Hidden[?] -> (Class1 & {payload: 'payload} | ~Class1) -> (123 | 'payload)
+//│ Defined Hidden.Foo: Hidden[?] -> (Class1 & {payload: 'payload} | ~#Class1) -> (123 | 'payload)
 //│ Defined Hidden.Main: Hidden['A] -> 'A -> (123 | error)
 
 :e
@@ -27,7 +27,7 @@ class Hidden2[A]
 //│ ╔══[ERROR] Type mismatch in application:
 //│ ║  l.26: 	  method Main (a: A) = this.Foo a
 //│ ║        	                       ^^^^^^^^^^^
-//│ ╟── expression of type `A & (Class1 | ~?a)` does not have field 'payload'
+//│ ╟── expression of type `#A & (#Class1 | ~?a)` does not have field 'payload'
 //│ ╟── Note: constraint arises from field selection:
 //│ ║  l.25: 	  method Foo s = case s of { Class1 -> s.payload | _ -> 123 }
 //│ ║        	                                       ^^^^^^^^^
@@ -35,7 +35,7 @@ class Hidden2[A]
 //│ ║  l.25: 	  method Foo s = case s of { Class1 -> s.payload | _ -> 123 }
 //│ ╙──      	                      ^
 //│ Defined class Hidden2[-A]
-//│ Defined Hidden2.Foo: Hidden2[?] -> (Class1 & {payload: 'payload} | ~Class1) -> (123 | 'payload)
+//│ Defined Hidden2.Foo: Hidden2[?] -> (Class1 & {payload: 'payload} | ~#Class1) -> (123 | 'payload)
 //│ Defined Hidden2.Main: Hidden2['A] -> 'A -> (123 | error)
 
 
