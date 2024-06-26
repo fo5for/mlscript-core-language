@@ -187,7 +187,7 @@ trait TypeSimplifier { self: Typer =>
                 // * due to apparently-conflicting bounds (as determined by `<:<`).
                 // * When the bounds are not conflicting, we use a `TypeRange` (for invariant type parameters).
                 def mkTypeRef: Opt[TR] = S(TypeRef(td.nme, td.tparamsargs.zipWithIndex.map { case ((tp, tv), tpidx) =>
-                    val fieldTagNme = tparamField(clsTyNme, tp)
+                    val fieldTagNme = TparamField(clsTyNme, tp)
                     val fromTyRef = trs2.iterator.filter(_.defn === clsTyNme)
                       .map(_.targs(tpidx) |> { ta => FieldType(ta, ta)(noProv) })
                     fromTyRef.++(rcd2.fields.iterator.filter(_._1 === fieldTagNme).map(_._2))

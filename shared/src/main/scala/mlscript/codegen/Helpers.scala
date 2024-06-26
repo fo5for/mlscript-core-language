@@ -19,7 +19,7 @@ object Helpers {
       s"Tup(${entries mkString ", "})"
     case Rcd(fields) =>
       val entries = fields.iterator
-        .map { case k -> v => s"${inspect(k)} = ${inspect(v)}" }
+        .map { case k -> v => s"${k.name} = ${inspect(v)}" }
         .mkString(", ")
       s"Rcd($entries})"
     case Sel(receiver, fieldName)    => s"Sel(${inspect(receiver)}, $fieldName)"

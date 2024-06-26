@@ -101,9 +101,6 @@ class TypeDefs extends ConstraintSolver { self: Typer =>
   }
   
   
-  def tparamField(clsNme: TypeName, tparamNme: TypeName): Var =
-    Var(clsNme.name + "#" + tparamNme.name)
-  
   def clsNameToNomTag(td: TypeDef)(prov: TypeProvenance, ctx: Ctx): ClassTag = {
     require(td.kind is Cls)
     ClassTag(Var(td.nme.name), ctx.allBaseClassesOf(td.nme.name))(prov)
@@ -290,7 +287,7 @@ class TypeDefs extends ConstraintSolver { self: Typer =>
                 case _ =>
                   val fields = fieldsOf(td.bodyTy, paramTags = true)
                   val tparamTags = td.tparamsargs.map { case (tp, tv) =>
-                    tparamField(td.nme, tp) -> FieldType(tv, tv)(tv.prov) }
+                    TparamField(td.nme, tp) -> FieldType(tv, tv)(tv.prov) }
                   val ctor = k match {
                     case Cls =>
                       val nomTag = clsNameToNomTag(td)(originProv(td.nme.toLoc, "class", td.nme.name), ctx)

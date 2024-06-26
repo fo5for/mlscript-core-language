@@ -236,7 +236,7 @@ class Typer(var dbg: Boolean, var verbose: Bool, var explainErrors: Bool)
           if (nt._1.name.isCapitalized)
             err(msg"Field identifiers must start with a small letter", nt._1.toLoc)(raise)
           nt._1 -> FieldType(nt._2.in.fold(BotType:ST)(rec), rec(nt._2.out))(
-            tp(App(nt._1, Var("").withLocOf(nt._2)).toCoveringLoc,
+            tp(Located.coveringLoc(nt._1 :: nt._2 :: Nil),
               (if (nt._2.in.isDefined) "mutable " else "") + "record field"))
         })(prov)
       case Function(lhs, rhs) => FunctionType(rec(lhs), rec(rhs))(tyTp(ty.toLoc, "function type"))
@@ -454,7 +454,6 @@ class Typer(var dbg: Boolean, var verbose: Bool, var explainErrors: Bool)
           case ty: TypeScheme => ty
         }.instantiate
         mkProxy(ty, prov)
-      case _: Internal => ???
       case lit: Lit => ClassTag(lit, lit.baseClasses)(prov)
       case App(Var("neg" | "~"), trm) => typeTerm(trm).neg(prov)
       case App(App(Var("|"), lhs), rhs) =>
@@ -472,7 +471,7 @@ class Typer(var dbg: Boolean, var verbose: Bool, var explainErrors: Bool)
           if (n.name.isCapitalized)
             err(msg"Field identifiers must start with a small letter", term.toLoc)(raise)
           val tym = typeTerm(t)
-          val fprov = tp(App(n, t).toLoc, "record field")
+          val fprov = tp(Located.coveringLoc(n :: t :: Nil), "record field")
           (n, tym.toUpper(fprov))
         })(prov)
       case Tup(fs) =>
@@ -526,7 +525,7 @@ class Typer(var dbg: Boolean, var verbose: Bool, var explainErrors: Bool)
         //   implicit calls to this method are marked as ambiguous and are forbidden
         // Explicit method retrievals have the form `Class.Method`
         //   Returns a function expecting an additional argument of type `Class` before the method arguments
-        def rcdSel(obj: Term, fieldName: Var) = {
+        def rcdSel(obj: Term, fieldName: RcdKey) = {
           val o_ty = typeTerm(obj)
           val res = freshVar(prov, Opt.when(!fieldName.name.startsWith("_"))(fieldName.name))
           val obj_ty = mkProxy(o_ty, tp(obj.toCoveringLoc, "receiver"))
@@ -534,7 +533,7 @@ class Typer(var dbg: Boolean, var verbose: Bool, var explainErrors: Bool)
             fieldName -> res.toUpper(tp(fieldName.toLoc, "field selector")) :: Nil)(prov)
           con(obj_ty, rcd_ty, res)
         }
-        def mthCallOrSel(obj: Term, fieldName: Var) = 
+        def mthCallOrSel(obj: Term, fieldName: RcdKey) = 
           (fieldName.name match {
             case s"$parent.$nme" => ctx.getMth(S(parent), nme) // explicit calls
             case nme => ctx.getMth(N, nme) // implicit calls
@@ -617,7 +616,6 @@ class Typer(var dbg: Boolean, var verbose: Bool, var explainErrors: Bool)
                 case Trt => trtNameToNomTag(td)(tp(pat.toLoc, "trait pattern"), ctx)
               }
           }
-        case Internal(iname) => ???
       }
       val newCtx = ctx.nest
       val (req_ty, bod_ty, (tys, rest_ty)) = scrutVar match {
@@ -688,7 +686,6 @@ class Typer(var dbg: Boolean, var verbose: Bool, var explainErrors: Bool)
             ) TypeName(n)
             else TypeTag(n)
           case lit: Lit => Literal(lit)
-          case Internal(iname) => ???
         }
         case TypeRef(td, Nil) => td
         case tr @ TypeRef(td, targs) => AppliedType(td, tr.mapTargs(S(true)) {

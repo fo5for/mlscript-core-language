@@ -46,7 +46,7 @@ Cons 1 Nil
 //│ ╔══[ERROR] Type mismatch in application:
 //│ ║  l.45: 	Cons 1 Nil
 //│ ║        	^^^^^^
-//│ ╟── integer literal of type `1` is not a compatible record (expected a record with fields: size, tail, head)
+//│ ╟── integer literal of type `1` is not a compatible record (expected a record with fields: size, head, tail)
 //│ ║  l.45: 	Cons 1 Nil
 //│ ╙──      	     ^
 //│ ╔══[ERROR] Type mismatch in application:
@@ -60,7 +60,7 @@ Cons 1 Nil
 //│   TypeError: (intermediate value) is not a function
 
 Cons
-//│ res: {head: 'A & 'head, size: int & 'size, tail: List['A] & 'tail} -> (Cons['A] & {head: 'head, size: 'size, tail: 'tail})
+//│ res: {head: 'head & 'A, size: int & 'size, tail: List['A] & 'tail} -> (Cons['A] & {head: 'head, size: 'size, tail: 'tail})
 //│    = [Function: res]
 
 :e
@@ -69,7 +69,7 @@ def Cons_old head tail =
 //│ ╔══[ERROR] Type mismatch in application:
 //│ ║  l.68: 	  Cons (ListBase (Seq { size = succ tail.size }))
 //│ ║        	  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-//│ ╟── application of type `ListBase[?] & {ListBase#A = ?A}` is not a compatible record (expected a record with fields: size, tail, head)
+//│ ╟── application of type `ListBase[?] & {ListBase#A = ?A}` is not a compatible record (expected a record with fields: size, head, tail)
 //│ ║  l.68: 	  Cons (ListBase (Seq { size = succ tail.size }))
 //│ ╙──      	        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 //│ Cons_old: anything -> {size: int} -> (Cons[nothing] & {tail: nothing} | error)

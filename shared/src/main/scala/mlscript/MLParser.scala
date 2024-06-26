@@ -66,10 +66,10 @@ class MLParser(origin: Origin, indent: Int = 0, recordLocations: Bool = true) {
   
   def subterm[p: P]: P[Term] = P( Index ~~ subtermNoSel ~ (
     // Fields:
-    ("." ~/ (variable |
+    ("." ~/ (recordKey |
       locate(("(" ~/ ident ~ "." ~ ident ~ ")")
-        .map {case (prt, id) => Var(s"${prt}.${id}")}))
-    ).map {(t: Var) => Left(t)} |
+        .map {case (prt, id) => Label(s"${prt}.${id}")}))
+    ).map {(t: RcdKey) => Left(t)} |
     // Array subscripts:
     ("[" ~ term ~/ "]" ~~ Index).map {Right(_)}
     // Assignment:
@@ -81,11 +81,17 @@ class MLParser(origin: Origin, indent: Int = 0, recordLocations: Bool = true) {
         })
     }
 
+  def recordKey[p: P]: P[RcdKey] = locate(ident.map(_ match {
+    case s"$clsNme#$tparamNme" => TparamField(TypeName(clsNme), TypeName(tparamNme))
+    case s"$$$iname" => Internal(iname)
+    case name => Label(name)
+  }))
+
   def record[p: P]: P[Rcd] = locate(P(
-      "{" ~/ (variable ~ "=" ~ term map L.apply).|(variable map R.apply).rep(sep = ";") ~ "}"
+      "{" ~/ (recordKey ~ "=" ~ term map L.apply).|(recordKey map R.apply).rep(sep = ";") ~ "}"
     ).map { fs => Rcd(fs.map{ 
         case L((v, t)) => v -> t
-        case R(id) => id -> id }.toList)})
+        case R(id) => id -> Var(id.name).withLocOf(id) }.toList)})
   
   def fun[p: P]: P[Term] = locate(P( kw("fun") ~/ tup ~ "->" ~ term ).map(nb => Lam(nb._1, nb._2)))
   
@@ -227,7 +233,7 @@ class MLParser(origin: Origin, indent: Int = 0, recordLocations: Bool = true) {
   def tyVar[p: P]: P[TypeVar] = locate(P("'" ~ ident map (id => TypeVar(R("'" + id), N))))
   def tyWild[p: P]: P[Bounds] = locate(P("?".! map (_ => Bounds(Bot, Top))))
   def rcd[p: P]: P[Record] =
-    locate(P( "{" ~/ ( variable ~ ":" ~ ty).rep(sep = ";") ~ "}" )
+    locate(P( "{" ~/ ( recordKey ~ ":" ~ ty).rep(sep = ";") ~ "}" )
       .map(_.toList.map {
         case (v, t) => v -> Field(None, t)
       } pipe Record))

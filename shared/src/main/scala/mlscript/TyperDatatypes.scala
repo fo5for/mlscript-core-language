@@ -133,7 +133,7 @@ abstract class TyperDatatypes extends TyperHelpers { self: Typer =>
     override def toString = s"Array‹$inner›"
   }
 
-  case class TupleType(fields: List[Opt[Var] -> SimpleType])(val prov: TypeProvenance) extends ArrayBase {
+  case class TupleType(fields: List[Opt[RcdKey] -> SimpleType])(val prov: TypeProvenance) extends ArrayBase {
     lazy val inner: SimpleType = fields.map(_._2).reduceLeftOption(_ | _).getOrElse(BotType)
     lazy val level: Int = fields.iterator.map(_._2.level).maxOption.getOrElse(0)
     lazy val toArray: ArrayType = ArrayType(inner)(prov)  // upcast to array
@@ -191,7 +191,7 @@ abstract class TyperDatatypes extends TyperHelpers { self: Typer =>
       lazy val tparamTags =
         if (paramTags) RecordType.mk(td.tparamsargs.map { case (tp, tv) =>
             val tvv = td.getVariancesOrDefault
-            tparamField(defn, tp) -> FieldType(
+            TparamField(defn, tp) -> FieldType(
               if (tvv(tv).isCovariant) BotType else tv,
               if (tvv(tv).isContravariant) TopType else tv)(prov)
           })(noProv)

@@ -41,8 +41,8 @@ class JSBackend {
     // should returns ("{ x, y }", ["x", "y"])
     case Rcd(fields) =>
       JSObjectPattern(fields map {
-        case (Var(nme), Var(als)) if nme === als => nme -> N
-        case (Var(nme), subTrm)                  => nme -> S(translatePattern(subTrm))
+        case (k, Var(als)) if k.name === als => k.name -> N
+        case (k, subTrm)                     => k.name -> S(translatePattern(subTrm))
       })
     // This branch supports `def f (x: int) = x`.
     case Asc(trm, _) => translatePattern(trm)

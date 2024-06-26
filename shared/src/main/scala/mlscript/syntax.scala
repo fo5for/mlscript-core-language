@@ -50,18 +50,12 @@ case object Als extends TypeDefKind("type alias")
 
 sealed abstract class Term                                           extends Terms with TermImpl
 sealed abstract class Lit                                            extends SimpleTerm with LitImpl
-sealed trait RcdKey                                                  extends SimpleTerm with RcdKeyImpl {
-  def name: Str
-}
-final case class Internal(iname: Str)                                extends RcdKey {
-  def name: Str = "$" + iname
-}
-final case class Var(name: Str)                                      extends SimpleTerm with VarImpl with RcdKey
+final case class Var(name: Str)                                      extends SimpleTerm with VarImpl
 final case class Lam(lhs: Term, rhs: Term)                           extends Term
 final case class App(lhs: Term, rhs: Term)                           extends Term
-final case class Tup(fields: Ls[Opt[Var] -> Term])                   extends Term
+final case class Tup(fields: Ls[Opt[RcdKey] -> Term])                extends Term
 final case class Rcd(fields: Ls[RcdKey -> Term])                     extends Term
-final case class Sel(receiver: Term, fieldName: Var)                 extends Term
+final case class Sel(receiver: Term, fieldName: RcdKey)              extends Term
 final case class Let(isRec: Bool, name: Var, rhs: Term, body: Term)  extends Term
 final case class Asc(trm: Term, ty: Type)                            extends Term
 final case class CaseOf(trm: Term, cases: CaseBranches)              extends Term
@@ -96,8 +90,8 @@ sealed abstract class Composed(val pol: Bool) extends Type with ComposedImpl
 final case class Union(lhs: Type, rhs: Type)             extends Composed(true)
 final case class Inter(lhs: Type, rhs: Type)             extends Composed(false)
 final case class Function(lhs: Type, rhs: Type)          extends Type
-final case class Record(fields: Ls[RcdKey -> Field])        extends Type
-final case class Tuple(fields: Ls[Opt[Var] -> Type])    extends Type
+final case class Record(fields: Ls[RcdKey -> Field])     extends Type
+final case class Tuple(fields: Ls[Opt[RcdKey] -> Type])  extends Type
 final case class Recursive(uv: TypeVar, body: Type)      extends Type
 final case class AppliedType(base: TypeName, targs: List[Type]) extends Type
 final case class Neg(base: Type)                         extends Type
@@ -126,3 +120,15 @@ final case class TypeVar(val identifier: Int \/ Str, nameHint: Opt[Str]) extends
 
 final case class PolyType(targs: Ls[TypeName], body: Type) extends PolyTypeImpl
 
+// Record keys
+
+sealed trait RcdKey                                                 extends Located with RcdKeyImpl {
+  def name: Str
+}
+final case class Label(name: Str)                                   extends RcdKey
+final case class Internal(iname: Str)                               extends RcdKey {
+  def name: Str = "$" + iname
+}
+final case class TparamField(clsNme: TypeName, tparamNme: TypeName) extends RcdKey {
+  def name: Str = clsNme.name + "#" + tparamNme.name
+}

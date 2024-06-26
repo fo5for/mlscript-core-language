@@ -284,7 +284,6 @@ trait TermImpl extends StatementImpl { self: Term =>
     case DecLit(value) => "decimal literal"
     case StrLit(value) => "string literal"
     case UnitLit(value) => if (value) "undefined literal" else "null literal"
-    case Internal(iname) => "internal reference"
     case Var(name) => "reference" // "variable reference"
     case Asc(trm, ty) => "type ascription"
     case Lam(name, rhs) => "lambda expression"
@@ -308,7 +307,6 @@ trait TermImpl extends StatementImpl { self: Term =>
     case DecLit(value) => value.toString
     case StrLit(value) => '"'.toString + value + '"'
     case UnitLit(value) => if (value) "undefined" else "null"
-    case i@Internal(iname) => i.name
     case Var(name) => name
     case Asc(trm, ty) => s"$trm : $ty"
     case Lam(name, rhs) => s"($name => $rhs)"
@@ -337,8 +335,14 @@ trait LitImpl { self: Lit =>
   }
 }
 
-trait RcdKeyImpl { self: RcdKey =>
-  
+trait RcdKeyImpl extends Ordered[RcdKey] { self: RcdKey =>
+  def compare(that: RcdKey): Int = this.name compare that.name
+  def children: List[Located] = this match {
+    case Label(name) => Nil
+    case Internal(iname) => Nil
+    case TparamField(clsNme, tparamNme) => Nil
+  }
+  override def toString: String = name
 }
 
 trait VarImpl { self: Var =>
@@ -349,7 +353,6 @@ trait VarImpl { self: Var =>
 trait SimpleTermImpl extends Ordered[SimpleTerm] { self: SimpleTerm =>
   def compare(that: SimpleTerm): Int = this.idStr compare that.idStr
   val idStr: Str = this match {
-    case i: Internal => i.toString
     case Var(name) => name
     case lit: Lit => lit.toString
   }
@@ -410,6 +413,19 @@ trait Located {
   }
 }
 
+object Located {
+  def coveringLoc(locs: List[Located]): Opt[Loc] = {
+    def subLocs = locs.iterator.flatMap(_.toLoc.iterator)
+    val spanStart =
+      subLocs.map(_.spanStart).minOption.getOrElse(return N)
+    val spanEnd =
+      subLocs.map(_.spanEnd).maxOption.getOrElse(return N)
+    val origins = subLocs.map(_.origin).toList.distinct
+    assert(origins.distinctBy(_.fileName).size === 1)
+    S(Loc(spanStart, spanEnd, origins.minBy(_.startLineNum)))
+  }
+}
+
 trait DesugaredStatementImpl extends Located { self: DesugaredStatement =>
   def describe: Str
 }
@@ -432,7 +448,6 @@ trait StatementImpl extends Located { self: Statement =>
   }
   
   def children: List[Located] = this match {
-    case Internal(iname) => Nil
     case Var(name) => Nil
     case Asc(trm, ty) => trm :: Nil
     case Lam(lhs, rhs) => lhs :: rhs :: Nil
