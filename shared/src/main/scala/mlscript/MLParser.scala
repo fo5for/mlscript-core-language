@@ -132,7 +132,7 @@ class MLParser(origin: Origin, indent: Int = 0, recordLocations: Bool = true) {
     "&",
     "= !",
     "< >",
-    "++ + -",
+    "+ -",
     "* / %",
     ".",
   ).zipWithIndex.flatMap {
@@ -232,11 +232,14 @@ class MLParser(origin: Origin, indent: Int = 0, recordLocations: Bool = true) {
   def tyName[p: P]: P[TypeName] = locate(P(ident map TypeName))
   def tyVar[p: P]: P[TypeVar] = locate(P("'" ~ ident map (id => TypeVar(R("'" + id), N))))
   def tyWild[p: P]: P[Bounds] = locate(P("?".! map (_ => Bounds(Bot, Top))))
-  def rcd[p: P]: P[Record] =
-    locate(P( "{" ~/ ( recordKey ~ ":" ~ ty).rep(sep = ";") ~ "}" )
+  def rcd[p: P]: P[Type] =
+    locate(P( "{" ~/ (("{" ~/ fldsBody) | rcdBody) ))
+  def rcdBody[p: P]: P[Record] =
+    P( ( recordKey ~ ":" ~ ty).rep(sep = ";") ~ "}" )
       .map(_.toList.map {
         case (v, t) => v -> Field(None, t)
-      } pipe Record))
+      } pipe Record)
+  def fldsBody[p: P]: P[Fields] = P( recordKey.rep(sep = ";") ~ "}}" ).map(_.toList pipe Fields)
   def parTy[p: P]: P[Type] = locate(P( "(" ~/ ty.rep(0, ",").map(_.map(N -> _).toList) ~ ",".!.? ~ ")" ).map {
     case (N -> ty :: Nil, N) => ty
     case (fs, _) => Tuple(fs)

@@ -306,6 +306,8 @@ class Typer(var dbg: Boolean, var verbose: Bool, var explainErrors: Bool)
           constrain(tv, rec(ub))(raise, tp(ub.toLoc, "upper bound specifiation"), ctx)
         }
         res
+      case Fields(fields) =>
+        FieldsType(fields)(tyTp(ty.toLoc, "record fields type"))
     }
     (rec(ty)(ctx, Map.empty), localVars.values)
   }(r => s"=> ${r._1} | ${r._2.mkString(", ")}")
@@ -474,19 +476,20 @@ class Typer(var dbg: Boolean, var verbose: Bool, var explainErrors: Bool)
               :: fieldNames.map(tp => msg"Declared at" -> tp.toLoc))(raise)
           case _ =>
         }
-        val fields = Internal("fields") -> fs.map { case (n, _) =>
-          NegType(RecordType.mk(n -> ExtrType(true)(noProv).toUpper(noProv) :: Nil)(noProv))(noProv) }
-            .reduceLeftOption[SimpleType]((lhs, rhs) => ComposedType(true, lhs, rhs)(noProv))
-            .getOrElse(ExtrType(true)(noProv))
-            .toUpper(tp(term.toLoc, "internal record literal"))
-        val body = fs.map { case (n, t) => 
+        // val fields = Internal("fields") -> fs.map { case (n, _) =>
+        //   NegType(RecordType.mk(n -> ExtrType(true)(noProv).toUpper(noProv) :: Nil)(noProv))(noProv) }
+        //     .reduceLeftOption[SimpleType]((lhs, rhs) => ComposedType(true, lhs, rhs)(noProv))
+        //     .getOrElse(ExtrType(true)(noProv))
+        //     .toUpper(tp(term.toLoc, "internal record literal"))
+        val fields = FieldsType(fs.map(_._1))(tp(term.toLoc, "record literal fields"))
+        val body = RecordType.mk(fs.map { case (n, t) => 
           if (n.name.isCapitalized)
             err(msg"Field identifiers must start with a small letter", term.toLoc)(raise)
           val tym = typeTerm(t)
           val fprov = tp(Located.coveringLoc(n :: t :: Nil), "record field")
           (n, tym.toUpper(fprov))
-        }
-        RecordType.mk(if (ctx.inPattern) body else fields :: body)(prov)
+        })(prov)
+        if (ctx.inPattern) body else ComposedType(false, body, fields)(noProv)
       case Tup(fs) =>
         TupleType(fs.map { case (n, t) =>
           val tym = typeTerm(t)
@@ -683,6 +686,7 @@ class Typer(var dbg: Boolean, var verbose: Bool, var explainErrors: Bool)
         case ComposedType(true, l, r) => Union(go(l), go(r))
         case ComposedType(false, l, r) => Inter(go(l), go(r))
         case RecordType(fs) => Record(fs.mapValues(field))
+        case FieldsType(flds) => Fields(flds)
         case TupleType(fs) => Tuple(fs.mapValues(go))
         case ArrayType(ub) => AppliedType(TypeName("Array"), go(ub) :: Nil)
         case NegType(t) => Neg(go(t))

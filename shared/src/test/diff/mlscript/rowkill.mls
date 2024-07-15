@@ -1,8 +1,8 @@
 
 :NoJS
 
-r1 = {y = 2} : {x: 1; y: 2} | ~{x: nothing}
-//│ r1: {x: 1, y: 2} | ~{x: nothing}
+r1 = {y = 2} : ({x: 1; y: 2} | ~{x: nothing}) & {{y}}
+//│ r1: {{y}} & {x: 1, y: 2} | {{y}} & ~{x: nothing}
 
 r1 : {y: 2}
 //│ res: {y: 2}
@@ -15,13 +15,29 @@ r1.x
 //│ ╔══[ERROR] Type mismatch in field selection:
 //│ ║  l.14: 	r1.x
 //│ ║        	^^^^
-//│ ╟── type `~{x: nothing}` does not have field 'x'
-//│ ║  l.4: 	r1 = {y = 2} : {x: 1; y: 2} | ~{x: nothing}
-//│ ║       	                              ^^^^^^^^^^^^^
+//│ ╟── type `{{y}} & {x: 1, y: 2} | {{y}} & ~{x: nothing}` does not have field 'x'
+//│ ║  l.4: 	r1 = {y = 2} : ({x: 1; y: 2} | ~{x: nothing}) & {{y}}
+//│ ║       	               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 //│ ╟── but it flows into reference with expected type `{x: ?x}`
 //│ ║  l.14: 	r1.x
 //│ ╙──      	^^
 //│ res: 1 | error
+
+:e
+r1 : {{x; y}}
+//│ ╔══[ERROR] Type mismatch in type ascription:
+//│ ║  l.27: 	r1 : {{x; y}}
+//│ ║        	^^
+//│ ╟── type `{{y}} & {x: 1, y: 2} | {{y}} & ~{x: nothing}` does not match type `{{x, y}}`
+//│ ║  l.4: 	r1 = {y = 2} : ({x: 1; y: 2} | ~{x: nothing}) & {{y}}
+//│ ║       	               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+//│ ╟── but it flows into reference with expected type `{{x, y}}`
+//│ ║  l.27: 	r1 : {{x; y}}
+//│ ║        	^^
+//│ ╟── Note: constraint arises from record fields type:
+//│ ║  l.27: 	r1 : {{x; y}}
+//│ ╙──      	     ^^^^^^^^
+//│ res: {{x, y}}
 
 r2 = {x = false; y = 2} : ({x: 1; y: 2} | ~{x: nothing}) & {x: false}
 //│ r2: {x: false} & ~{x: nothing} | {x: nothing, y: 2}
@@ -33,7 +49,15 @@ fun x -> fun y -> x ++ y
 //│ res: 'a -> ({$fields: 'a} & 'b) -> ('a & 'b)
 
 r3 = {x = 1; y = true} ++ {y = 2}
-//│ r3: {$fields: ~{y: nothing}, y: 2} & ~{y: nothing} | {$fields: ~{y: nothing}, x: 1, y: nothing}
+//│ r3: {{y}} & {y: 2} & ~{y: nothing}
 
 r3 : {x: 1; y: 2}
 //│ res: {x: 1, y: 2}
+
+r4 = {y = "hello"} ++ r3
+//│ r4: {{y}} & {y: nothing} & ~{y: nothing}
+
+// FIXME
+// :e
+r3.z
+//│ res: nothing

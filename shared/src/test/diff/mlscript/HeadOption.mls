@@ -63,8 +63,8 @@ class Cons[A]: List[A] & { head: A; tail: List[A] }
 l0 = Cons { head = 1; tail = Nil {} }
 //│ l0: Cons[1] & {tail: Nil[?]}
 //│ constrain calls  : 25
-//│ annoying  calls  : 2
-//│ subtyping calls  : 41
+//│ annoying  calls  : 13
+//│ subtyping calls  : 46
 
 :stats
 Cons.HeadOption l0
@@ -77,8 +77,8 @@ Cons.HeadOption l0
 l1 = Cons { head = 1; tail = Cons { head = 2; tail = Cons { head = 3; tail = Nil {} } } }
 //│ l1: Cons[1] & {tail: Cons[2] & {tail: Cons[3] & {tail: Nil[?]}}}
 //│ constrain calls  : 61
-//│ annoying  calls  : 6
-//│ subtyping calls  : 101
+//│ annoying  calls  : 39
+//│ subtyping calls  : 116
 
 :stats
 Cons.HeadOption l1
@@ -91,8 +91,8 @@ Cons.HeadOption l1
 l2 = Cons { head = 0; tail = l1 }
 //│ l2: Cons[0] & {tail: Cons[1] & {tail: Cons[2] & {tail: Cons[3] & {tail: Nil[?]}}}}
 //│ constrain calls  : 19
-//│ annoying  calls  : 2
-//│ subtyping calls  : 101
+//│ annoying  calls  : 13
+//│ subtyping calls  : 106
 
 :stats
 Cons.HeadOption l2
@@ -105,8 +105,8 @@ Cons.HeadOption l2
 l3 = Cons { head = 0-1; tail = l2 }
 //│ l3: Cons[int] & {tail: Cons[0] & {tail: Cons[1] & {tail: Cons[2] & {tail: Cons[3] & {tail: Nil[?]}}}}}
 //│ constrain calls  : 37
-//│ annoying  calls  : 2
-//│ subtyping calls  : 121
+//│ annoying  calls  : 13
+//│ subtyping calls  : 126
 
 :stats
 Cons.HeadOption l3
@@ -122,8 +122,8 @@ rec def lr1 = Cons { head = 0; tail = lr1 }
 //│   where
 //│     'tail :> Cons[0] & {tail: 'tail}
 //│ constrain calls  : 22
-//│ annoying  calls  : 2
-//│ subtyping calls  : 38
+//│ annoying  calls  : 13
+//│ subtyping calls  : 43
 
 :stats
 Cons.HeadOption lr1
@@ -138,8 +138,8 @@ rec def lr2 = Cons { head = 0; tail = Cons { head = 1; tail = Cons { head = 3; t
 //│   where
 //│     'tail :> Cons[0] & {tail: Cons[1] & {tail: Cons[3] & {tail: 'tail}}}
 //│ constrain calls  : 58
-//│ annoying  calls  : 6
-//│ subtyping calls  : 98
+//│ annoying  calls  : 39
+//│ subtyping calls  : 113
 
 :stats
 Cons.HeadOption lr2
@@ -154,21 +154,15 @@ l1 = Cons { tail = Cons { tail = Cons { tail = Nil {} } } }
 //│ ╔══[ERROR] Type mismatch in application:
 //│ ║  l.153: 	l1 = Cons { tail = Cons { tail = Cons { tail = Nil {} } } }
 //│ ║         	                                 ^^^^^^^^^^^^^^^^^^^^^^
-//│ ╟── record literal of type `{$fields: ~{tail: nothing}, tail: ?a}` does not have field 'head'
-//│ ║  l.153: 	l1 = Cons { tail = Cons { tail = Cons { tail = Nil {} } } }
-//│ ╙──       	                                      ^^^^^^^^^^^^^^^^^
+//│ ╙── expression of type `{{tail}} & {tail: ?a}` is not a compatible record (expected a record with fields: head, tail)
 //│ ╔══[ERROR] Type mismatch in application:
 //│ ║  l.153: 	l1 = Cons { tail = Cons { tail = Cons { tail = Nil {} } } }
 //│ ║         	                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-//│ ╟── record literal of type `{$fields: ~{tail: nothing}, tail: ?a}` does not have field 'head'
-//│ ║  l.153: 	l1 = Cons { tail = Cons { tail = Cons { tail = Nil {} } } }
-//│ ╙──       	                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+//│ ╙── expression of type `{{tail}} & {tail: ?a}` is not a compatible record (expected a record with fields: head, tail)
 //│ ╔══[ERROR] Type mismatch in application:
 //│ ║  l.153: 	l1 = Cons { tail = Cons { tail = Cons { tail = Nil {} } } }
 //│ ║         	     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-//│ ╟── record literal of type `{$fields: ~{tail: nothing}, tail: ?a}` does not have field 'head'
-//│ ║  l.153: 	l1 = Cons { tail = Cons { tail = Cons { tail = Nil {} } } }
-//│ ╙──       	          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+//│ ╙── expression of type `{{tail}} & {tail: ?a}` is not a compatible record (expected a record with fields: head, tail)
 //│ l1: Cons[nothing] & {tail: Cons[nothing] & {tail: Cons[nothing] & {tail: Nil[?]} | error} | error} | error
 
 

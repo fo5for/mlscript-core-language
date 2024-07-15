@@ -124,9 +124,7 @@ eval {} (Lit{})
 //│ ╔══[ERROR] Type mismatch in application:
 //│ ║  l.123: 	eval {} (Lit{})
 //│ ║         	^^^^^^^
-//│ ╟── record literal of type `{$fields: nothing}` is not a function
-//│ ║  l.123: 	eval {} (Lit{})
-//│ ║         	     ^^
+//│ ╟── expression of type `{{}}` is not a function
 //│ ╟── Note: constraint arises from function type:
 //│ ║  l.38: 	def eval: ('b -> int) -> Expr['b] -> int
 //│ ╙──      	          ^^^^^^^^^^^
@@ -151,10 +149,10 @@ eval {} (Lit{})
 :e
 eval (fun x -> x) (Lit{})
 //│ ╔══[ERROR] Type mismatch in application:
-//│ ║  l.152: 	eval (fun x -> x) (Lit{})
+//│ ║  l.150: 	eval (fun x -> x) (Lit{})
 //│ ║         	^^^^^^^^^^^^^^^^^^^^^^^^^
 //│ ╟── application of type `Lit` does not match type `Add & {lhs: Expr[?b], rhs: Expr[?b]} | Lit & {val: int} | ?b & ~Lit & ~Add`
-//│ ║  l.152: 	eval (fun x -> x) (Lit{})
+//│ ║  l.150: 	eval (fun x -> x) (Lit{})
 //│ ║         	                   ^^^^^
 //│ ╟── Note: constraint arises from union type:
 //│ ║  l.31: 	type Expr[A] = Lit & {val: int} | Add & {lhs: Expr[A]; rhs: Expr[A]} | ~Lit & ~Add & A
@@ -175,13 +173,13 @@ eval (fun x -> x) 1
 :e
 eval (fun x -> x.hello) (Const{})
 //│ ╔══[ERROR] Type mismatch in application:
-//│ ║  l.176: 	eval (fun x -> x.hello) (Const{})
+//│ ║  l.174: 	eval (fun x -> x.hello) (Const{})
 //│ ║         	^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 //│ ╟── application of type `Const` does not have field 'hello'
-//│ ║  l.176: 	eval (fun x -> x.hello) (Const{})
+//│ ║  l.174: 	eval (fun x -> x.hello) (Const{})
 //│ ║         	                         ^^^^^^^
 //│ ╟── Note: constraint arises from field selection:
-//│ ║  l.176: 	eval (fun x -> x.hello) (Const{})
+//│ ║  l.174: 	eval (fun x -> x.hello) (Const{})
 //│ ║         	               ^^^^^^^
 //│ ╟── from applied type reference:
 //│ ║  l.38: 	def eval: ('b -> int) -> Expr['b] -> int
@@ -195,11 +193,9 @@ eval (fun x -> x.hello) (Const{})
 :e
 eval (fun x -> x.hello) {hello=1}
 //│ ╔══[ERROR] Type mismatch in application:
-//│ ║  l.196: 	eval (fun x -> x.hello) {hello=1}
+//│ ║  l.194: 	eval (fun x -> x.hello) {hello=1}
 //│ ║         	^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-//│ ╟── record literal of type `{$fields: ~{hello: nothing}, hello: 1}` does not match type `Add & {lhs: Expr[?b], rhs: Expr[?b]} | Lit & {val: int} | ?b & ~Lit & ~Add`
-//│ ║  l.196: 	eval (fun x -> x.hello) {hello=1}
-//│ ║         	                        ^^^^^^^^^
+//│ ╟── expression of type `{{hello}} & {hello: 1}` does not match type `Add & {lhs: Expr[?b], rhs: Expr[?b]} | Lit & {val: int} | ?b & ~Lit & ~Add`
 //│ ╟── Note: constraint arises from union type:
 //│ ║  l.31: 	type Expr[A] = Lit & {val: int} | Add & {lhs: Expr[A]; rhs: Expr[A]} | ~Lit & ~Add & A
 //│ ║        	               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -216,16 +212,16 @@ l = Lit{}
 :e
 l: {hello:1}
 //│ ╔══[ERROR] Type mismatch in type ascription:
-//│ ║  l.217: 	l: {hello:1}
+//│ ║  l.213: 	l: {hello:1}
 //│ ║         	^
 //│ ╟── application of type `Lit` does not have field 'hello'
-//│ ║  l.212: 	l = Lit{}
+//│ ║  l.208: 	l = Lit{}
 //│ ║         	    ^^^^^
 //│ ╟── but it flows into reference with expected type `{hello: 1}`
-//│ ║  l.217: 	l: {hello:1}
+//│ ║  l.213: 	l: {hello:1}
 //│ ║         	^
 //│ ╟── Note: constraint arises from record type:
-//│ ║  l.217: 	l: {hello:1}
+//│ ║  l.213: 	l: {hello:1}
 //│ ║         	   ^^^^^^^^^
 //│ ╟── Note: class Lit is defined at:
 //│ ║  l.2: 	class Lit

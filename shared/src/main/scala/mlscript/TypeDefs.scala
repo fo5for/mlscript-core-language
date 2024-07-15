@@ -138,7 +138,7 @@ class TypeDefs extends ConstraintSolver { self: Typer =>
       case p: ProxyType => fieldsOf(p.underlying, paramTags)
       case TypeRange(lb, ub) => fieldsOf(ub, paramTags)
       case _: ObjectTag | _: FunctionType | _: ArrayBase | _: TypeVariable
-        | _: NegType | _: ExtrType | _: ComposedType => Map.empty
+        | _: NegType | _: ExtrType | _: ComposedType | _: FieldsType => Map.empty
     }
   }
   // ()
@@ -212,7 +212,7 @@ class TypeDefs extends ConstraintSolver { self: Typer =>
             val t2 = travsersed + R(tv)
             tv.lowerBounds.forall(checkCycle(_)(t2)) && tv.upperBounds.forall(checkCycle(_)(t2))
           }
-          case _: ExtrType | _: ObjectTag | _: FunctionType | _: RecordType | _: ArrayBase => true
+          case _: ExtrType | _: ObjectTag | _: FunctionType | _: RecordType | _: ArrayBase | _: FieldsType => true
         }
         // }()
         
@@ -261,6 +261,9 @@ class TypeDefs extends ConstraintSolver { self: Typer =>
                 false
               case _: TypeRange =>
                 err(msg"cannot inherit from type bounds", prov.loco)
+                false
+              case _: FieldsType =>
+                err(msg"cannot inherit from record fields type", prov.loco)
                 false
               case _: RecordType | _: ExtrType => true
               case p: ProxyType => checkParents(p.underlying)
@@ -587,6 +590,7 @@ class TypeDefs extends ConstraintSolver { self: Typer =>
           case ProxyType(underlying) => updateVariance(underlying, curVariance)
           case TraitTag(_) | ClassTag(_, _) => ()
           case ExtrType(pol) => ()
+          case FieldsType(_) => ()
           case t: TypeVariable =>
             // update the variance information for the type variable
             val tvv = tyDef.tvarVariances.getOrElse(die)

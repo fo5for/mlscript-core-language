@@ -97,6 +97,7 @@ final case class AppliedType(base: TypeName, targs: List[Type]) extends Type
 final case class Neg(base: Type)                         extends Type
 final case class Bounds(lb: Type, ub: Type)              extends Type
 final case class Constrained(base: Type, where: Ls[TypeVar -> Bounds]) extends Type
+final case class Fields(fields: Ls[RcdKey])              extends NullaryType
 
 final case class Field(in: Opt[Type], out: Type)         extends FieldImpl
 

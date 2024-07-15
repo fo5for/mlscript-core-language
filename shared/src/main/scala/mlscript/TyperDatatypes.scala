@@ -115,6 +115,8 @@ abstract class TyperDatatypes extends TyperHelpers { self: Typer =>
       val shadowing = fs.iterator.map(_._1).toSet
       RecordType(fields.filterNot(f => shadowing(f._1)) ++ fs)(prov)
     }
+    def & (n: RcdKey, f: FieldType): RecordType =
+      RecordType(recordIntersection(fields, n -> f :: Nil))(prov)
     def sorted: RecordType = RecordType(fields.sortBy(_._1))(prov)
     override def toString = s"{${fields.map(f => s"${f._1}: ${f._2}").mkString(", ")}}"
   }
@@ -122,6 +124,12 @@ abstract class TyperDatatypes extends TyperHelpers { self: Typer =>
     def empty: RecordType = RecordType(Nil)(noProv)
     def mk(fields: List[(RcdKey, FieldType)])(prov: TypeProvenance = noProv): SimpleType =
       if (fields.isEmpty) ExtrType(false)(prov) else RecordType(fields)(prov)
+  }
+
+  case class FieldsType(fields: List[RcdKey])(val prov: TypeProvenance) extends SimpleType with Factorizable {
+    val level: Int = 0
+    def sorted: FieldsType = FieldsType(fields.sorted)(prov)
+    override def toString = fields.mkString("{{", ", ", "}}")
   }
   
   sealed abstract class ArrayBase extends FunOrArrType {
@@ -337,6 +345,10 @@ abstract class TyperDatatypes extends TyperHelpers { self: Typer =>
   }
   case class NegTrait(tt: TraitTag) extends ProxyType with Factorizable {
     lazy val underlying: SimpleType = tt.neg()
+    val prov = noProv
+  }
+  case class NegFields(flds: FieldsType) extends ProxyType with Factorizable {
+    lazy val underlying: SimpleType = flds.neg()
     val prov = noProv
   }
   

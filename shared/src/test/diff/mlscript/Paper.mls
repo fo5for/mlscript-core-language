@@ -130,10 +130,10 @@ rec def unzip xs = case xs of
   None -> { fst = None; snd = None },
   Some -> let tmp = unzip xs.tail in { fst = Cons xs.value.fst tmp.fst ;
                                        snd = Cons xs.value.snd tmp.snd }
-//│ unzip: 'a -> {$fields: ~{fst: nothing, snd: nothing}, fst: 'tail, snd: 'tail0}
+//│ unzip: 'a -> ({{fst, snd}} & {fst: None | 'b, snd: None | 'c})
 //│   where
-//│     'tail0 :> Cons['value] & {tail: 'tail0} | None
-//│     'tail :> Cons['value0] & {tail: 'tail} | None
+//│     'c :> Cons['value] & {tail: None | 'c}
+//│     'b :> Cons['value0] & {tail: None | 'b}
 //│     'a <: None | #Some & {tail: 'a, value: {fst: 'value0, snd: 'value}}
 //│      = [Function: unzip]
 
@@ -152,10 +152,10 @@ def unzip_ty = unzip
 //│   <:  Cons_ty:
 //│ 'a -> (List['a] & 'b) -> (Cons['a] & {tail: 'b})
 //│        = [Function: Cons1]
-//│ 'a -> {$fields: ~{fst: nothing, snd: nothing}, fst: 'tail, snd: 'tail0}
+//│ 'a -> ({{fst, snd}} & {fst: None | 'b, snd: None | 'c})
 //│   where
-//│     'tail0 :> Cons['value] & {tail: 'tail0} | None
-//│     'tail :> Cons['value0] & {tail: 'tail} | None
+//│     'c :> Cons['value] & {tail: None | 'c}
+//│     'b :> Cons['value0] & {tail: None | 'b}
 //│     'a <: None | #Some & {tail: 'a, value: {fst: 'value0, snd: 'value}}
 //│   <:  unzip_ty:
 //│ List[{fst: 'a, snd: 'b}] -> {fst: List['a], snd: List['b]}

@@ -18,11 +18,11 @@ Hey t
 //│    = [ 1, 2, 3 ]
 
 f ((a, b, c)) = { a; b; c }
-//│ f: ('a, 'b, 'c,) -> {$fields: ~{a: nothing, b: nothing, c: nothing}, a: 'a, b: 'b, c: 'c}
+//│ f: ('a, 'b, 'c,) -> ({{a, b, c}} & {a: 'a, b: 'b, c: 'c})
 //│  = [Function: f]
 
 f t
-//│ res: {$fields: ~{a: nothing, b: nothing, c: nothing}, a: 1, b: 2, c: 3}
+//│ res: {{a, b, c}} & {a: 1, b: 2, c: 3}
 //│    = { a: 1, b: 2, c: 3 }
 
 f ((a, b)) = add a b
@@ -68,11 +68,11 @@ if true then (1,) else fun x -> x
 //│    = [ 1 ]
 
 if true then (1,) else { x = 1 }
-//│ res: anything
+//│ res: (1,) | {{x}} & {x: 1}
 //│    = [ 1 ]
 
 r = if true then (1,) else { _1 = 1 }
-//│ r: anything
+//│ r: (1,) | {{_1}} & {_1: 1}
 //│  = [ 1 ]
 
 :e

@@ -171,9 +171,9 @@ f(Box{})
 //│ ╔══[ERROR] Type mismatch in application:
 //│ ║  l.170: 	f(Box{})
 //│ ║         	^^^^^^^^
-//│ ╟── record literal of type `{$fields: nothing}` does not match type `nothing`
-//│ ║  l.170: 	f(Box{})
-//│ ║         	     ^^
+//│ ╟── reference of type `{{}}` does not match type `nothing`
+//│ ║  l.31: 	def Box value = Box { inner = value }
+//│ ║        	                              ^^^^^
 //│ ╟── Note: constraint arises from type wildcard:
 //│ ║  l.165: 	def f: Box[?] -> int
 //│ ╙──       	           ^

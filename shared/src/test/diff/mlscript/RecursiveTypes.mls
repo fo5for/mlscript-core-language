@@ -454,10 +454,10 @@ f_manual { a = 1 }
 //│ ╟── Note: constraint arises from record type:
 //│ ║  l.425: 	def f_manual: (({a: 'b & 'a & 'c} as 'a) & 'd) -> ('c | ('d | 'e & {a: int} as 'e))
 //│ ║         	                ^^^^^^^^^^^^^^^^^
-//│ ╟── from intersection type:
+//│ ╟── from local type binding:
 //│ ║  l.425: 	def f_manual: (({a: 'b & 'a & 'c} as 'a) & 'd) -> ('c | ('d | 'e & {a: int} as 'e))
-//│ ╙──       	                    ^^^^^^^^^^^^
-//│ res: 1 | error | {$fields: ~{a: nothing}, a: 1}
+//│ ╙──       	               ^^^^^^^^^^^^^^^^^^^^^^^^^
+//│ res: 1 | error | {{a}} & {a: 1}
 
 f_manual error
 //│ res: nothing

@@ -419,8 +419,8 @@ prettier12 done (eval1 done) e1
 //│ res: string
 //│    = '123'
 //│ constrain calls  : 1352
-//│ annoying  calls  : 490
-//│ subtyping calls  : 1994
+//│ annoying  calls  : 524
+//│ subtyping calls  : 2019
 
 
 e1 = add (lit 1) (add (lit 2) (lit 3))

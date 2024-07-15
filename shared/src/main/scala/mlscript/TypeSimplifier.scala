@@ -123,7 +123,7 @@ trait TypeSimplifier { self: Typer =>
         
         c.toTypeWith(_ match {
           
-          case LhsRefined(bo, ft, at, tts, rcd, trs) =>
+          case LhsRefined(bo, ft, at, tts, rcd, fl, trs) =>
             // * The handling of type parameter fields is currently a little wrong
             // *  because we reconstruct type references from class tags although we may be missing fields!
             
@@ -261,11 +261,11 @@ trait TypeSimplifier { self: Typer =>
                 
                 val clsTag = if (shallHaveTR) N else S(cls)
                 
-                LhsRefined(clsTag, ft2, at2, tts, cleanedRcd.sorted, 
+                LhsRefined(clsTag, ft2, at2, tts, cleanedRcd.sorted, fl.map(_.sorted), 
                   if (shallHaveTR) ListSet.from(typeRef) ++ trsFiltered else trsFiltered)
               
               case _ =>
-                LhsRefined(bo, ft2, at2, tts, rcd.copy(nfs)(rcd.prov).sorted, trs2)
+                LhsRefined(bo, ft2, at2, tts, rcd.copy(nfs)(rcd.prov).sorted, fl.map(_.sorted), trs2)
               
             }
             
@@ -280,8 +280,9 @@ trait TypeSimplifier { self: Typer =>
             //    as in showing `T & ~C[?] & ~D[?, ?]` instead of just `T & ~c & ~d`
             // ots.map { case t @ (_: ClassTag | _: TraitTag) => ... }
             val r = rest match {
-              case v @ S(R(RhsField(n, t))) => RhsField(n, t.update(go(_, pol.map(!_)), go(_, pol))).toType(sort = true)
-              case v @ S(L(bty)) => go(bty, pol)
+              case v @ S(L(R(RhsField(n, t)))) => RhsField(n, t.update(go(_, pol.map(!_)), go(_, pol))).toType(sort = true)
+              case v @ S(L(L(bty))) => go(bty, pol)
+              case S(R(fl)) => fl.reduceLeftOption[ST](_ | _).getOrElse(die)
               case N => BotType
             }
             trs.iterator.map(go(_, pol)).foldLeft(BotType: ST)(_ | _) |
@@ -378,7 +379,7 @@ trait TypeSimplifier { self: Typer =>
       case ArrayType(inner) => analyze2(inner, pol)
       case FunctionType(l, r) => analyze2(l, !pol); analyze2(r, pol)
       case tv: TypeVariable => process(tv, pol)
-      case _: ObjectTag | ExtrType(_) => ()
+      case _: ObjectTag | ExtrType(_) | FieldsType(_) => ()
       case ct: ComposedType => process(ct, pol)
       case NegType(und) => analyze2(und, !pol)
       case ProxyType(underlying) => analyze2(underlying, pol)
@@ -588,7 +589,7 @@ trait TypeSimplifier { self: Typer =>
       case TupleType(fs) => TupleType(fs.mapValues(transform(_, pol, N)))(st.prov)
       case ArrayType(inner) => ArrayType(transform(inner, pol, N))(st.prov)
       case FunctionType(l, r) => FunctionType(transform(l, pol.map(!_), N), transform(r, pol, N))(st.prov)
-      case _: ObjectTag | ExtrType(_) => st
+      case _: ObjectTag | ExtrType(_) | FieldsType(_) => st
       case tv: TypeVariable if parent.exists(_ === tv) =>
         if (pol.getOrElse(lastWords(s"parent in invariant position $tv $parent"))) BotType else TopType
       case tv: TypeVariable =>

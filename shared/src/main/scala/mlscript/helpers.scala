@@ -97,6 +97,7 @@ abstract class TypeImpl extends Located { self: Type =>
         s"\n    ${" " * vstr.length} <: ${ub.showIn(ctx, 0)}"
     }.mkString}", outerPrec > 0)
     case Literal(UnitLit(b)) => if (b) "undefined" else "null"
+    case Fields(fields) => fields.mkString("{{", ", ", "}}")
   }
   
   def children: List[Type] = this match {
@@ -122,7 +123,7 @@ abstract class TypeImpl extends Located { self: Type =>
     case Inter(ty1, ty2) => ty1.collectFields ++ ty2.collectFields
     case _: Union | _: Function | _: Tuple | _: Recursive
         | _: Neg | _: Bounds | Top | Bot
-        | _: Literal | _: TypeVar | _: AppliedType | _: TypeName | _: TypeName | _: TypeTag | _: Constrained =>
+        | _: Literal | _: TypeVar | _: AppliedType | _: TypeName | _: TypeName | _: TypeTag | _: Constrained | _: Fields =>
       Nil
   }
 
@@ -136,7 +137,7 @@ abstract class TypeImpl extends Located { self: Type =>
     case Inter(lhs, rhs) => lhs.collectTypeNames ++ rhs.collectTypeNames
     case _: Union | _: Function | _: Record | _: Tuple | _: Recursive
         | _: Neg | _: Bounds | Top | Bot | _: TypeTag
-        | _: Literal | _: TypeVar | _: Constrained =>
+        | _: Literal | _: TypeVar | _: Constrained | _: Fields =>
       Nil
   }
 
@@ -149,7 +150,7 @@ abstract class TypeImpl extends Located { self: Type =>
     case Inter(ty1, ty2) => ty1.collectBodyFieldsAndTypes ++ ty2.collectBodyFieldsAndTypes
     case _: Union | _: Function | _: Tuple | _: Recursive
         | _: Neg | _: Bounds | Top | Bot
-        | _: Literal | _: TypeVar | _: AppliedType | _: TypeName | _: TypeTag | _: Constrained =>
+        | _: Literal | _: TypeVar | _: AppliedType | _: TypeName | _: TypeTag | _: Constrained | _: Fields =>
       Nil
   }
 }
