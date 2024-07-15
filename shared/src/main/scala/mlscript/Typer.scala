@@ -170,13 +170,13 @@ class Typer(var dbg: Boolean, var verbose: Bool, var explainErrors: Bool)
       "<=" -> intBinPred,
       ">=" -> intBinPred,
       "==" -> intBinPred,
-      "++" -> {
-        val r1 = freshVar(noProv)(1)
-        val r2 = freshVar(noProv)(1)
-        val f = freshVar(noProv)(1)
-        // PolymorphicType(0, fun(singleTup(r1), fun(singleTup(ComposedType(false, r2, RecordType(Internal("fields") -> f.toUpper(noProv) :: Nil)(noProv))(noProv)), ComposedType(false, ComposedType(true, r1, f)(noProv), r2)(noProv))(noProv))(noProv))
-        PolymorphicType(0, fun(singleTup(r1), fun(singleTup(ComposedType(false, r2, RecordType(Internal("fields") -> r1.toUpper(noProv) :: Nil)(noProv))(noProv)), ComposedType(false, r1, r2)(noProv))(noProv))(noProv))
-      },
+      // "++" -> {
+      //   val r1 = freshVar(noProv)(1)
+      //   val r2 = freshVar(noProv)(1)
+      //   // val f = freshVar(noProv)(1)
+      //   // PolymorphicType(0, fun(singleTup(r1), fun(singleTup(ComposedType(false, r2, RecordType(Internal("fields") -> f.toUpper(noProv) :: Nil)(noProv))(noProv)), ComposedType(false, ComposedType(true, r1, f)(noProv), r2)(noProv))(noProv))(noProv))
+      //   PolymorphicType(0, fun(singleTup(r1), fun(singleTup(ComposedType(false, r2, RecordType(Internal("fields") -> r1.toUpper(noProv) :: Nil)(noProv))(noProv)), ComposedType(false, r1, r2)(noProv))(noProv))(noProv))
+      // },
       "&&" -> fun(singleTup(BoolType), fun(singleTup(BoolType), BoolType)(noProv))(noProv),
       "||" -> fun(singleTup(BoolType), fun(singleTup(BoolType), BoolType)(noProv))(noProv),
       "id" -> {

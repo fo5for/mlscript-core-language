@@ -45,19 +45,19 @@ r2 = {x = false; y = 2} : ({x: 1; y: 2} | ~{x: nothing}) & {x: false}
 r2 : {x: false; y: 2}
 //│ res: {x: false, y: 2}
 
-fun x -> fun y -> x ++ y
-//│ res: 'a -> ({$fields: 'a} & 'b) -> ('a & 'b)
+// fun x -> fun y -> x ++ y
+// //│ res: 'a -> ({$fields: 'a} & 'b) -> ('a & 'b)
 
-r3 = {x = 1; y = true} ++ {y = 2}
-//│ r3: {{y}} & {y: 2} & ~{y: nothing}
+// r3 = {x = 1; y = true} ++ {y = 2}
+// //│ r3: {{y}} & {y: 2} & ~{y: nothing}
 
-r3 : {x: 1; y: 2}
-//│ res: {x: 1, y: 2}
+// r3 : {x: 1; y: 2}
+// //│ res: {x: 1, y: 2}
 
-r4 = {y = "hello"} ++ r3
-//│ r4: {{y}} & {y: nothing} & ~{y: nothing}
+// r4 = {y = "hello"} ++ r3
+// //│ r4: {{y}} & {y: nothing} & ~{y: nothing}
 
-// FIXME
-// :e
-r3.z
-//│ res: nothing
+// // FIXME
+// // :e
+// r3.z
+// //│ res: nothing

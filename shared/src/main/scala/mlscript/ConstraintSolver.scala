@@ -188,11 +188,11 @@ class ConstraintSolver extends NormalForms { self: Typer =>
               // Reuse the case implemented below:  (note – this shortcut adds a few more "annoying" calls in stats)
               annoying(Nil, lr, Nil, RhsBases(Nil, S(L(R(rf))), lsEmpty))
             case (LhsRefined(bo, ft, at, ts, r, fl, _), RhsBases(ots, S(L(R(RhsField(n, t2)))), trs)) =>
-              fl.fold(r)(fl => (r & (Internal("fields"), fl.fields.map { n =>
+              /* fl.fold(r)(fl => (r & (Internal("fields"), fl.fields.map { n =>
                 NegType(RecordType.mk(n -> ExtrType(true)(noProv).toUpper(noProv) :: Nil)(noProv))(noProv) }
                   .reduceLeftOption[SimpleType]((lhs, rhs) => ComposedType(true, lhs, rhs)(noProv))
                   .getOrElse(ExtrType(true)(noProv))
-                  .toUpper(noProv)))).fields.find(_._1 === n) match {
+                  .toUpper(noProv)))) */ r.fields.find(_._1 === n) match {
                 case S(nt1) =>
                   recLb(t2, nt1._2)
                   rec(nt1._2.ub, t2.ub, false)
@@ -324,9 +324,9 @@ class ConstraintSolver extends NormalForms { self: Typer =>
           case (RecordType(fs0), RecordType(fs1)) =>
             fs1.foreach { case (n1, t1) =>
               fs0.find(_._1 === n1).fold {
-                if (n1 === Internal("fields"))
-                  rec(ExtrType(false)(noProv), t1.ub, false)
-                else
+                // if (n1 === Internal("fields"))
+                //   rec(ExtrType(false)(noProv), t1.ub, false)
+                // else
                   reportError()
               } { case (n0, t0) =>
                 recLb(t1, t0)
