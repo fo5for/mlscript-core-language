@@ -198,9 +198,9 @@ class ConstraintSolver extends NormalForms { self: Typer =>
                   rec(nt1._2.ub, t2.ub, false)
                 case N => reportError()
               }
-            case (LhsRefined(N, N, N, ts, r, S(fl), _), RhsBases(pts, S(R(fls)), lsEmp)) =>
-              val fs = fl.fields.toSet
-              if (fls.exists(_.fields.toSet === fs))
+            case (LhsRefined(N, N, N, ts, r, S(FieldsType(fl, st)), _), RhsBases(pts, S(R(fls)), lsEmp)) =>
+              val fs = fl.toSet
+              if (fls.exists { case FieldsType(fl2, false) => !st && fl2.toSet === fs; case FieldsType(fl2, true) => fl2.toSet subsetOf fs })
                 println(s"OK  $fl  <:  ${fls.mkString(" | ")}")
               else
                 reportError()
@@ -333,7 +333,7 @@ class ConstraintSolver extends NormalForms { self: Typer =>
                 rec(t0.ub, t1.ub, false)
               }
             }
-          case (FieldsType(f1), FieldsType(f2)) if f1.toSet === f2.toSet => ()
+          case (f1: FieldsType, f2: FieldsType) if f1 <:< f2 => ()
           case (err @ ClassTag(ErrTypeId, _), RecordType(fs1)) =>
             fs1.foreach(f => rec(err, f._2.ub, false))
           case (RecordType(fs1), err @ ClassTag(ErrTypeId, _)) =>

@@ -126,10 +126,21 @@ abstract class TyperDatatypes extends TyperHelpers { self: Typer =>
       if (fields.isEmpty) ExtrType(false)(prov) else RecordType(fields)(prov)
   }
 
-  case class FieldsType(fields: List[RcdKey])(val prov: TypeProvenance) extends SimpleType with Factorizable {
+  case class FieldsType(fields: List[RcdKey], star: Bool)(val prov: TypeProvenance) extends SimpleType with Factorizable {
     val level: Int = 0
-    def sorted: FieldsType = FieldsType(fields.sorted)(prov)
-    override def toString = fields.mkString("{{", ", ", "}}")
+    def sorted: FieldsType = FieldsType(fields.sorted, star)(prov)
+    def inter(that: FieldsType, prov: TypeProvenance = noProv): Opt[FieldsType] = (this, that) match {
+      case (FieldsType(fl1, false), FieldsType(fl2, false)) =>
+        if (fl1.toSet === fl2.toSet) S(this) else N
+      case (FieldsType(fl1, true), FieldsType(fl2, false)) =>
+        if (fl1.toSet subsetOf fl2.toSet) S(that) else N
+      case (FieldsType(fl1, false), FieldsType(fl2, true)) =>
+        that.inter(this, prov)
+      case (FieldsType(fl1, true), FieldsType(fl2, true)) =>
+        S(FieldsType((fl1.iterator ++ fl2.iterator).distinct.toList, true)(prov))
+    }
+    def =~= (that: FieldsType): Bool = fields.toSet === that.fields.toSet && star === that.star
+    override def toString = (if (star) fields :+ "*" else fields).mkString("{{", ", ", "}}")
   }
   
   sealed abstract class ArrayBase extends FunOrArrType {

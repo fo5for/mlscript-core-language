@@ -97,7 +97,7 @@ abstract class TypeImpl extends Located { self: Type =>
         s"\n    ${" " * vstr.length} <: ${ub.showIn(ctx, 0)}"
     }.mkString}", outerPrec > 0)
     case Literal(UnitLit(b)) => if (b) "undefined" else "null"
-    case Fields(fields) => fields.mkString("{{", ", ", "}}")
+    case Fields(fields, star) => (if (star) fields :+ "*" else fields).mkString("{{", ", ", "}}")
   }
   
   def children: List[Type] = this match {

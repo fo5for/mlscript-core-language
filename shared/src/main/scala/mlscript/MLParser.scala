@@ -239,7 +239,8 @@ class MLParser(origin: Origin, indent: Int = 0, recordLocations: Bool = true) {
       .map(_.toList.map {
         case (v, t) => v -> Field(None, t)
       } pipe Record)
-  def fldsBody[p: P]: P[Fields] = P( recordKey.rep(sep = ";") ~ "}}" ).map(_.toList pipe Fields)
+  def fldsBody[p: P]: P[Fields] = P( (recordKey map L.apply).|("*".! map R.apply).rep(sep = ";") ~ "}}" )
+    .map(_.toList.partitionMap(identity) match { case (fls, ss) => Fields(fls, ss.nonEmpty) } )
   def parTy[p: P]: P[Type] = locate(P( "(" ~/ ty.rep(0, ",").map(_.map(N -> _).toList) ~ ",".!.? ~ ")" ).map {
     case (N -> ty :: Nil, N) => ty
     case (fs, _) => Tuple(fs)

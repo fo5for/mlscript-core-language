@@ -262,6 +262,7 @@ abstract class TyperHelpers { Typer: Typer =>
       case (_: RecordType, _: FunctionType) => TopType
       case (RecordType(fs1), RecordType(fs2)) =>
         RecordType(recordUnion(fs1, fs2))(prov)
+      case (fl1: FieldsType, fl2: FieldsType) if fl1 =~= fl2 => fl1
       case (t0 @ TupleType(fs0), t1 @ TupleType(fs1))
         // If the sizes are different, to merge these we'd have to return
         //  the awkward `t0.toArray & t0.toRecord | t1.toArray & t1.toRecord`
@@ -282,8 +283,7 @@ abstract class TyperHelpers { Typer: Typer =>
         FunctionType(l1 | l2, r1 & r2)(prov)
       case (RecordType(fs1), RecordType(fs2)) =>
         RecordType(mergeSortedMap(fs1, fs2)(_ && _).toList)(prov)
-      case (FieldsType(fl1), FieldsType(fl2)) =>
-        if (fl1.toSet === fl2.toSet) this else BotType
+      case (fl1: FieldsType, fl2: FieldsType) => fl1.inter(fl2, prov).getOrElse(BotType)
       case (t0 @ TupleType(fs0), t1 @ TupleType(fs1)) =>
         if (fs0.sizeCompare(fs1) =/= 0) BotType
         else TupleType(tupleIntersection(fs0, fs1))(t0.prov)
@@ -330,7 +330,8 @@ abstract class TyperHelpers { Typer: Typer =>
         case (RecordType(fs1), RecordType(fs2)) => assume { implicit cache =>
           fs2.forall(f => fs1.find(_._1 === f._1).exists(_._2 <:< f._2))
         }
-        case (FieldsType(fl1), FieldsType(fl2)) => fl1.toSet === fl2.toSet
+        case (FieldsType(fl1, false), FieldsType(fl2, false)) => fl1.toSet === fl2.toSet
+        case (FieldsType(fl1, _), FieldsType(fl2, true)) => fl2.toSet subsetOf fl1.toSet
         case (_: TypeVariable, _) | (_, _: TypeVariable)
           if cache.contains(this -> that)
           => cache(this -> that)
@@ -426,7 +427,7 @@ abstract class TyperHelpers { Typer: Typer =>
         case FunctionType(l, r) => pol.map(!_) -> l :: pol -> r :: Nil
         case ComposedType(_, l, r) => pol -> l :: pol -> r :: Nil
         case RecordType(fs) => fs.unzip._2.flatMap(childrenPolField)
-        case FieldsType(_) => Nil
+        case FieldsType(_, _) => Nil
         case TupleType(fs) => fs.unzip._2.map(pol -> _)
         case ArrayType(fld) => pol -> fld :: Nil
         case NegType(n) => pol.map(!_) -> n :: Nil
@@ -470,7 +471,7 @@ abstract class TyperHelpers { Typer: Typer =>
       case FunctionType(l, r) => l :: r :: Nil
       case ComposedType(_, l, r) => l :: r :: Nil
       case RecordType(fs) => fs.flatMap(f => f._2.lb :: f._2.ub :: Nil)
-      case FieldsType(_) => Nil
+      case FieldsType(_, _) => Nil
       case TupleType(fs) => fs.unzip._2
       case ArrayType(inner) => inner :: Nil
       case NegType(n) => n :: Nil
@@ -534,7 +535,7 @@ abstract class TyperHelpers { Typer: Typer =>
       case FunctionType(l, r) => apply(pol.map(!_))(l); apply(pol)(r)
       case ComposedType(_, l, r) => apply(pol)(l); apply(pol)(r)
       case RecordType(fs) => fs.unzip._2.foreach(applyField(pol))
-      case FieldsType(_) => ()
+      case FieldsType(_, _) => ()
       case TupleType(fs) => fs.unzip._2.foreach(apply(pol))
       case ArrayType(fld) => apply(pol)(fld)
       case NegType(n) => apply(pol.map(!_))(n)

@@ -85,8 +85,8 @@ class NormalForms extends TyperDatatypes { self: Typer =>
     def & (that: FieldsType): Opt[LhsNf] = this match {
       case LhsTop => S(LhsRefined(N, N, N, ssEmp, RecordType.empty, S(that), lsEmp))
       case LhsRefined(b1, f1, a1, ts, r1, N, trs) => S(LhsRefined(b1, f1, a1, ts, r1, S(that), trs))
-      case LhsRefined(b1, f1, a1, ts, r1, S(fl), trs) =>
-        if (fl.fields.toSet === that.fields.toSet) S(LhsRefined(b1, f1, a1, ts, r1, S(fl), trs)) else N
+      case LhsRefined(b1, f1, a1, ts, r1, S(fl1), trs) =>
+        fl1 inter that map (fl => LhsRefined(b1, f1, a1, ts, r1, S(fl), trs))
     }
     def & (that: TypeRef)(implicit ctx: Ctx): Opt[LhsNf] = this match {
       case LhsTop => S(LhsRefined(N, N, N, ssEmp, RecordType.empty, N, ListSet.single(that)))
@@ -168,7 +168,8 @@ class NormalForms extends TyperDatatypes { self: Typer =>
       case RhsBot => S(RhsBases(Nil, S(R(that :: Nil)), lsEmp))
       case f: RhsField => N
       case RhsBases(tags, N, trefs) => S(RhsBases(tags, S(R(that :: Nil)), trefs))
-      case RhsBases(tags, S(R(flds)), trefs) => S(RhsBases(tags, S(R(flds :+ that)), trefs))
+      case RhsBases(tags, S(R(flds)), trefs) =>
+        S(RhsBases(tags, S(R(if (flds contains that) flds else flds :+ that)), trefs))
       case RhsBases(tags, S(L(_)), trefs) => N
     }
     def | (that: RhsNf)(implicit ctx: Ctx): Opt[RhsNf] = that match {
@@ -189,10 +190,10 @@ class NormalForms extends TyperDatatypes { self: Typer =>
         => S(RhsBases(prims1, S(L(R(RhsField(r1.name, r1.ty && r2.ty)))), trs1))
       case (RhsBases(prims1, S(R(fl1)), trs1), RhsBases(prims2, S(R(fl2)), trs2))
         if prims1 === prims2 && trs1 === trs2
-        => S(RhsBases(prims1, S(R({
-            val flds2s = fl2.map(_.fields.toSet)
-            fl1.filter(f => flds2s.exists(f.fields.toSet))
-          })), trs1))
+        => S(RhsBases(prims1, (for { f1 <- fl1; f2 <- fl2; f <- f1 inter f2 } yield f).distinct match {
+            case fl @ _ :: _ => S(R(fl))
+            case Nil => N
+          }, trs1))
       /* // * It is a bit complicated to merge unions of TypeRefs, so it's not currently done
       case (RhsBases(prims1, bf1, trs1), RhsBases(prims2, bf2, trs2))
         if prims1 === prims2 && bf1 === bf2
@@ -290,16 +291,15 @@ class NormalForms extends TyperDatatypes { self: Typer =>
         case RhsBases(tts, r, trs) => copy(rnf = RhsBases(tts.filterNot(_ === tt), r, trs))
         case RhsBot | _: RhsField => this
       }
-      case FieldsType(f) => lnf match {
-        case LhsRefined(base, fun, arr, ttags, reft, flds, trefs) =>
-          val fs = f.toSet
-          copy(lnf = LhsRefined(base, fun, arr, ttags, reft, flds.filterNot(_.fields.toSet === fs), trefs))
+      case fact: FieldsType => lnf match {
+        case LhsRefined(base, fun, arr, ttags, reft, fl, trefs) =>
+          copy(lnf = LhsRefined(base, fun, arr, ttags, reft, fl.filterNot(_ =~= fact) , trefs))
         case LhsTop => this
       }
-      case NegFields(FieldsType(f)) => rnf match {
+      case NegFields(FieldsType(fl1, wc1)) => rnf match {
         case RhsBases(tags, S(R(flds)), trefs) =>
-          val fs = f.toSet
-          copy(rnf = RhsBases(tags, S(R(flds.filterNot(_.fields.toSet === fs))), trefs))
+          val fls1 = fl1.toSet
+          copy(rnf = RhsBases(tags, S(R(flds.filterNot { case FieldsType(fl2, wc2) => fls1 === fl2.toSet && wc1 === wc2 })), trefs))
         case RhsBot | _: RhsField | _: RhsBases => this
       }
     }
@@ -343,7 +343,7 @@ class NormalForms extends TyperDatatypes { self: Typer =>
       case (Conjunct(LhsRefined(bse1, ft1, at1, ts1, rcd1, flds1, trs1), vs1, r1, nvs1)
           , Conjunct(LhsRefined(bse2, ft2, at2, ts2, rcd2, flds2, trs2), vs2, r2, nvs2))
         if bse1 === bse2 && ts1 === ts2 && vs1 === vs2 && r1 === r2 && nvs1 === nvs2
-        && flds1.toSet === flds2.toSet && trs1 === trs2 // TODO could do better
+        && trs1 === trs2 // TODO could do better
       =>
         // val sameTrs = trs1 === trs2
         val sameTrs = true
@@ -362,6 +362,10 @@ class NormalForms extends TyperDatatypes { self: Typer =>
           } else return N
         val trs = if (sameTrs) trs1 else mergeTypeRefs(true, trs1, trs2)
         val rcd = RecordType(recordUnion(rcd1.fields, rcd2.fields))(noProv)
+        val flds = (flds1, flds2) match {
+          case (S(flds1), S(flds2)) => if (flds1 =~= flds2) flds1 else return N
+          case _ => flds1 orElse flds2
+        }
         S(Conjunct(LhsRefined(bse1, ft, at, ts1, rcd, flds1, trs), vs1, r1, nvs1))
       
       case _ => N
@@ -486,7 +490,7 @@ class NormalForms extends TyperDatatypes { self: Typer =>
       case tt: TraitTag =>
         DNF.of(LhsRefined(N, N, N, SortedSet.single(tt), RecordType.empty, N, lsEmp))
       case rcd: RecordType => DNF.of(LhsRefined(N, N, N, ssEmp, rcd, N, lsEmp))
-      case flds: FieldsType => DNF.of(LhsRefined(N, N, N, ssEmp, RecordType.empty, S(flds), lsEmp))
+      case fl: FieldsType => DNF.of(LhsRefined(N, N, N, ssEmp, RecordType.empty, S(fl), lsEmp))
       case ExtrType(pol) => extr(!pol)
       case ty @ ComposedType(p, l, r) => merge(p)(mk(l, pol), mk(r, pol))
       case NegType(und) => DNF(CNF.mk(und, !pol).ds.map(_.neg))

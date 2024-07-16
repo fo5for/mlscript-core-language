@@ -306,8 +306,8 @@ class Typer(var dbg: Boolean, var verbose: Bool, var explainErrors: Bool)
           constrain(tv, rec(ub))(raise, tp(ub.toLoc, "upper bound specifiation"), ctx)
         }
         res
-      case Fields(fields) =>
-        FieldsType(fields)(tyTp(ty.toLoc, "record fields type"))
+      case Fields(fields, star) =>
+        FieldsType(fields, star)(tyTp(ty.toLoc, "record fields type"))
     }
     (rec(ty)(ctx, Map.empty), localVars.values)
   }(r => s"=> ${r._1} | ${r._2.mkString(", ")}")
@@ -481,7 +481,7 @@ class Typer(var dbg: Boolean, var verbose: Bool, var explainErrors: Bool)
         //     .reduceLeftOption[SimpleType]((lhs, rhs) => ComposedType(true, lhs, rhs)(noProv))
         //     .getOrElse(ExtrType(true)(noProv))
         //     .toUpper(tp(term.toLoc, "internal record literal"))
-        val fields = FieldsType(fs.map(_._1))(tp(term.toLoc, "record literal fields"))
+        val fields = FieldsType(fs.map(_._1), false)(tp(term.toLoc, "record literal fields"))
         val body = RecordType.mk(fs.map { case (n, t) => 
           if (n.name.isCapitalized)
             err(msg"Field identifiers must start with a small letter", term.toLoc)(raise)
@@ -686,7 +686,7 @@ class Typer(var dbg: Boolean, var verbose: Bool, var explainErrors: Bool)
         case ComposedType(true, l, r) => Union(go(l), go(r))
         case ComposedType(false, l, r) => Inter(go(l), go(r))
         case RecordType(fs) => Record(fs.mapValues(field))
-        case FieldsType(flds) => Fields(flds)
+        case FieldsType(flds, st) => Fields(flds, st)
         case TupleType(fs) => Tuple(fs.mapValues(go))
         case ArrayType(ub) => AppliedType(TypeName("Array"), go(ub) :: Nil)
         case NegType(t) => Neg(go(t))

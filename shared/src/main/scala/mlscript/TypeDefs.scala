@@ -590,7 +590,7 @@ class TypeDefs extends ConstraintSolver { self: Typer =>
           case ProxyType(underlying) => updateVariance(underlying, curVariance)
           case TraitTag(_) | ClassTag(_, _) => ()
           case ExtrType(pol) => ()
-          case FieldsType(_) => ()
+          case FieldsType(_, _) => ()
           case t: TypeVariable =>
             // update the variance information for the type variable
             val tvv = tyDef.tvarVariances.getOrElse(die)

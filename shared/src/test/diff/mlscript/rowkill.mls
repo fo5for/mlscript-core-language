@@ -45,6 +45,74 @@ r2 = {x = false; y = 2} : ({x: 1; y: 2} | ~{x: nothing}) & {x: false}
 r2 : {x: false; y: 2}
 //│ res: {x: false, y: 2}
 
+r3 = {x = false; y = 2}
+//│ r3: {{x, y}} & {x: false, y: 2}
+
+r3 : {{x; y}}
+//│ res: {{x, y}}
+
+r3 : {{x; y; *}}
+//│ res: {{x, y, *}}
+
+r3 : {{x; *}}
+//│ res: {{x, *}}
+
+:e
+r3 : {{x; y; z}}
+//│ ╔══[ERROR] Type mismatch in type ascription:
+//│ ║  l.61: 	r3 : {{x; y; z}}
+//│ ║        	^^
+//│ ╟── reference of type `{{x, y}} & {x: false, y: 2}` does not match type `{{x, y, z}}`
+//│ ╟── Note: constraint arises from record fields type:
+//│ ║  l.61: 	r3 : {{x; y; z}}
+//│ ╙──      	     ^^^^^^^^^^^
+//│ res: {{x, y, z}}
+
+:e
+r3 : {{x; z}}
+//│ ╔══[ERROR] Type mismatch in type ascription:
+//│ ║  l.72: 	r3 : {{x; z}}
+//│ ║        	^^
+//│ ╟── reference of type `{{x, y}} & {x: false, y: 2}` does not match type `{{x, z}}`
+//│ ╟── Note: constraint arises from record fields type:
+//│ ║  l.72: 	r3 : {{x; z}}
+//│ ╙──      	     ^^^^^^^^
+//│ res: {{x, z}}
+
+:e
+r3 : {{x; *; z}}
+//│ ╔══[ERROR] Type mismatch in type ascription:
+//│ ║  l.83: 	r3 : {{x; *; z}}
+//│ ║        	^^
+//│ ╟── reference of type `{{x, y}} & {x: false, y: 2}` does not match type `{{x, z, *}}`
+//│ ╟── Note: constraint arises from record fields type:
+//│ ║  l.83: 	r3 : {{x; *; z}}
+//│ ╙──      	     ^^^^^^^^^^^
+//│ res: {{x, z, *}}
+
+r3 : ({{x; y; *}} & {x: bool; y: int} | {{x; y; z; *}} & {x: bool; y: int; z: string}) & {{x; y}}
+//│ res: {{x, y}} & {x: bool, y: int}
+
+r3 : ({{x; y; *}} & {x: bool; y: int} | {{x; y; z; *}} & {x: bool; y: int; z: string}) & {{x; y; *}}
+//│ res: {{x, y, *}} & {x: bool, y: int}
+
+r3 : ({{x; y; *}} & {x: bool; y: int} | {{x; y; z; *}} & {x: bool; y: int; z: string}) & ~{{x; y; z; *}}
+//│ res: {{x, y, *}} & {x: bool, y: int} & ~{{x, y, z, *}}
+
+:e
+r3 : ({{x; y; z; *}} | {{x; y; w; *}}) & ~{{x; y; w; *}}
+//│ ╔══[ERROR] Type mismatch in type ascription:
+//│ ║  l.103: 	r3 : ({{x; y; z; *}} | {{x; y; w; *}}) & ~{{x; y; w; *}}
+//│ ║         	^^
+//│ ╟── reference of type `{{x, y}} & {x: false, y: 2}` does not match type `{{w, x, y, *}} | {{x, y, z, *}}`
+//│ ╟── Note: constraint arises from union type:
+//│ ║  l.103: 	r3 : ({{x; y; z; *}} | {{x; y; w; *}}) & ~{{x; y; w; *}}
+//│ ║         	     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+//│ ╟── from intersection type:
+//│ ║  l.103: 	r3 : ({{x; y; z; *}} | {{x; y; w; *}}) & ~{{x; y; w; *}}
+//│ ╙──       	     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+//│ res: {{x, y, z, *}} & ~{{x, y, w, *}}
+
 // fun x -> fun y -> x ++ y
 // //│ res: 'a -> ({$fields: 'a} & 'b) -> ('a & 'b)
 

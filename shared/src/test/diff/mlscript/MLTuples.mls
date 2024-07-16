@@ -68,11 +68,11 @@ if true then (1,) else fun x -> x
 //│    = [ 1 ]
 
 if true then (1,) else { x = 1 }
-//│ res: (1,) | {{x}} & {x: 1}
+//│ res: anything
 //│    = [ 1 ]
 
 r = if true then (1,) else { _1 = 1 }
-//│ r: (1,) | {{_1}} & {_1: 1}
+//│ r: anything
 //│  = [ 1 ]
 
 :e

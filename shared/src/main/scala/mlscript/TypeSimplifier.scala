@@ -379,7 +379,7 @@ trait TypeSimplifier { self: Typer =>
       case ArrayType(inner) => analyze2(inner, pol)
       case FunctionType(l, r) => analyze2(l, !pol); analyze2(r, pol)
       case tv: TypeVariable => process(tv, pol)
-      case _: ObjectTag | ExtrType(_) | FieldsType(_) => ()
+      case _: ObjectTag | ExtrType(_) | FieldsType(_, _) => ()
       case ct: ComposedType => process(ct, pol)
       case NegType(und) => analyze2(und, !pol)
       case ProxyType(underlying) => analyze2(underlying, pol)
@@ -589,7 +589,7 @@ trait TypeSimplifier { self: Typer =>
       case TupleType(fs) => TupleType(fs.mapValues(transform(_, pol, N)))(st.prov)
       case ArrayType(inner) => ArrayType(transform(inner, pol, N))(st.prov)
       case FunctionType(l, r) => FunctionType(transform(l, pol.map(!_), N), transform(r, pol, N))(st.prov)
-      case _: ObjectTag | ExtrType(_) | FieldsType(_) => st
+      case _: ObjectTag | ExtrType(_) | FieldsType(_, _) => st
       case tv: TypeVariable if parent.exists(_ === tv) =>
         if (pol.getOrElse(lastWords(s"parent in invariant position $tv $parent"))) BotType else TopType
       case tv: TypeVariable =>
