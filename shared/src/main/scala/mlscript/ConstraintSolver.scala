@@ -175,7 +175,7 @@ class ConstraintSolver extends NormalForms { self: Typer =>
               reportError()
             
             case (LhsRefined(_, S(f0@FunctionType(l0, r0)), at, ts, r, fl, _)
-                , RhsBases(_, S(L(L(f1@FunctionType(l1, r1)))), _)) =>
+                , RhsBases(_, S(L(f1@FunctionType(l1, r1))), _)) =>
               rec(f0, f1, true)
             case (LhsRefined(bt, S(f: FunctionType), at, ts, r, fl, trs), RhsBases(pts, _, _)) =>
               annoying(Nil, LhsRefined(bt, N, at, ts, r, fl, trs), Nil, done_rs)
@@ -184,10 +184,10 @@ class ConstraintSolver extends NormalForms { self: Typer =>
               if (pts.contains(pt) || pts.exists(p => pt.parentsST.contains(p.id)))
                 println(s"OK  $pt  <:  ${pts.mkString(" | ")}")
               else annoying(Nil, LhsRefined(N, ft, at, ts, r, fl, trs), Nil, RhsBases(Nil, bf, trs2))
-            case (lr @ LhsRefined(bo, ft, at, ts, r, fl, _), rf @ RhsField(n, t2)) =>
+            case (lr @ LhsRefined(bo, ft, at, ts, r, fl, _), rf: RhsBase) =>
               // Reuse the case implemented below:  (note – this shortcut adds a few more "annoying" calls in stats)
-              annoying(Nil, lr, Nil, RhsBases(Nil, S(L(R(rf))), lsEmpty))
-            case (LhsRefined(bo, ft, at, ts, r, fl, _), RhsBases(ots, S(L(R(RhsField(n, t2)))), trs)) =>
+              annoying(Nil, lr, Nil, RhsBases(Nil, S(R(rf)), lsEmpty))
+            case (LhsRefined(bo, ft, at, ts, r, fl, _), RhsBases(ots, S(R(RhsField(n, t2))), trs)) =>
               /* fl.fold(r)(fl => (r & (Internal("fields"), fl.fields.map { n =>
                 NegType(RecordType.mk(n -> ExtrType(true)(noProv).toUpper(noProv) :: Nil)(noProv))(noProv) }
                   .reduceLeftOption[SimpleType]((lhs, rhs) => ComposedType(true, lhs, rhs)(noProv))
@@ -198,22 +198,22 @@ class ConstraintSolver extends NormalForms { self: Typer =>
                   rec(nt1._2.ub, t2.ub, false)
                 case N => reportError()
               }
-            case (LhsRefined(N, N, N, ts, r, S(FieldsType(fl, st)), _), RhsBases(pts, S(R(fls)), lsEmp)) =>
+            case (LhsRefined(N, N, N, ts, r, S(FieldsType(fl, st)), _), RhsBases(pts, S(R(RhsFieldsType(fts))), lsEmp)) =>
               val fs = fl.toSet
-              if (fls.exists { case FieldsType(fl2, false) => !st && fl2.toSet === fs; case FieldsType(fl2, true) => fl2.toSet subsetOf fs })
-                println(s"OK  $fl  <:  ${fls.mkString(" | ")}")
+              if (fts.exists { case FieldsType(fl2, false) => !st && fl2.toSet === fs; case FieldsType(fl2, true) => fl2.toSet subsetOf fs })
+                println(s"OK  $fl  <:  ${fts.mkString(" | ")}")
               else
                 reportError()
             case (LhsRefined(N, N, N, ts, r, S(fl), _), RhsBases(pts, _, lsEmp)) =>
               reportError()
-            case (LhsRefined(N, N, N, ts, r, N, _), RhsBases(pts, N | S(L(L(_: FunctionType | _: ArrayBase)) | R(_)), _)) =>
+            case (LhsRefined(N, N, N, ts, r, N, _), RhsBases(pts, N | S(L(_: FunctionType | _: ArrayBase) | R(_: RhsFieldsType)), _)) =>
               reportError()
-            case (LhsRefined(N, ft, S(b: TupleType), ts, r, fl, _), RhsBases(pts, S(L(L(ty: TupleType))), _))
+            case (LhsRefined(N, ft, S(b: TupleType), ts, r, fl, _), RhsBases(pts, S(L(ty: TupleType)), _))
               if b.fields.size === ty.fields.size =>
                 (b.fields.unzip._2 lazyZip ty.fields.unzip._2).foreach { (l, r) =>
                   rec(l, r, false)
                 }
-            case (LhsRefined(N, ft, S(b: ArrayBase), ts, r, fl, _), RhsBases(pts, S(L(L(ar: ArrayType))), _)) =>
+            case (LhsRefined(N, ft, S(b: ArrayBase), ts, r, fl, _), RhsBases(pts, S(L(ar: ArrayType)), _)) =>
               rec(b.inner, ar.inner, false)
             case (LhsRefined(N, ft, S(b: ArrayBase), ts, r, fl, _), _) => reportError()
           }

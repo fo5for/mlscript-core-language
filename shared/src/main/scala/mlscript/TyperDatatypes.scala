@@ -126,7 +126,7 @@ abstract class TyperDatatypes extends TyperHelpers { self: Typer =>
       if (fields.isEmpty) ExtrType(false)(prov) else RecordType(fields)(prov)
   }
 
-  case class FieldsType(fields: List[RcdKey], star: Bool)(val prov: TypeProvenance) extends SimpleType with Factorizable {
+  case class FieldsType(fields: List[RcdKey], star: Bool)(val prov: TypeProvenance) extends SimpleType {
     val level: Int = 0
     def sorted: FieldsType = FieldsType(fields.sorted, star)(prov)
     def inter(that: FieldsType, prov: TypeProvenance = noProv): Opt[FieldsType] = (this, that) match {
@@ -356,10 +356,6 @@ abstract class TyperDatatypes extends TyperHelpers { self: Typer =>
   }
   case class NegTrait(tt: TraitTag) extends ProxyType with Factorizable {
     lazy val underlying: SimpleType = tt.neg()
-    val prov = noProv
-  }
-  case class NegFields(flds: FieldsType) extends ProxyType with Factorizable {
-    lazy val underlying: SimpleType = flds.neg()
     val prov = noProv
   }
   

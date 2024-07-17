@@ -275,14 +275,15 @@ trait TypeSimplifier { self: Typer =>
         }, {
           case RhsBot => BotType
           case RhsField(n, t) => RecordType(n -> t.update(go(_, pol.map(!_)), go(_, pol)) :: Nil)(noProv)
+          case RhsFieldsType(fts) => fts.foldLeft(BotType: ST)(_ | _)
           case RhsBases(ots, rest, trs) =>
             // Note: could recosntruct class tags for these, but it would be pretty verbose,
             //    as in showing `T & ~C[?] & ~D[?, ?]` instead of just `T & ~c & ~d`
             // ots.map { case t @ (_: ClassTag | _: TraitTag) => ... }
             val r = rest match {
-              case v @ S(L(R(RhsField(n, t)))) => RhsField(n, t.update(go(_, pol.map(!_)), go(_, pol))).toType(sort = true)
-              case v @ S(L(L(bty))) => go(bty, pol)
-              case S(R(fl)) => fl.reduceLeftOption[ST](_ | _).getOrElse(die)
+              case v @ S(R(RhsField(n, t))) => RhsField(n, t.update(go(_, pol.map(!_)), go(_, pol))).toType(sort = true)
+              case v @ S(L(bty)) => go(bty, pol)
+              case S(R(RhsFieldsType(fts))) => fts.foldLeft(BotType: ST)(_ | _)
               case N => BotType
             }
             trs.iterator.map(go(_, pol)).foldLeft(BotType: ST)(_ | _) |
