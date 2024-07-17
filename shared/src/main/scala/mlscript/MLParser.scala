@@ -116,7 +116,7 @@ class MLParser(origin: Origin, indent: Int = 0, recordLocations: Bool = true) {
     locate(P( kw("case") ~/ term ~ "of" ~ ("{" ~ "|".? ~ matchArms("|") ~ "}" | matchArms(",")) ).map(CaseOf.tupled))
   def matchArms[p: P](sep: Str): P[CaseBranches] = P(
     ( ("_" ~ "->" ~ term).map(Wildcard)
-    | ((lit | variable) ~ "->" ~ term ~ matchArms2(sep))
+    | (((lit | variable) map L.apply).|("{{" ~/ fldsBody map R.apply) ~ "->" ~ term ~ matchArms2(sep))
       .map { case (t, b, rest) => Case(t, b, rest) }
     ).?.map {
       case None => NoCases

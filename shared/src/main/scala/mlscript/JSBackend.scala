@@ -193,26 +193,27 @@ class JSBackend {
     ).`throw` :: Nil), Nil)
   }
 
-  private def translateCase(scrut: JSExpr, pat: SimpleTerm) = {
+  private def translateCase(scrut: JSExpr, pat: SimpleTerm \/ Fields) = {
     JSTenary(
       pat match {
-        case Var("int") =>
+        case L(Var("int")) =>
           JSInvoke(JSField(JSIdent("Number"), "isInteger"), scrut :: Nil)
-        case Var("bool") =>
+        case L(Var("bool")) =>
           JSBinary("===", scrut.member("constructor"), JSLit("Boolean"))
-        case Var(s @ ("true" | "false")) =>
+        case L(Var(s @ ("true" | "false"))) =>
           JSBinary("===", scrut, JSLit(s))
-        case Var("string") =>
+        case L(Var("string")) =>
           // JS is dumb so `instanceof String` won't actually work on "primitive" strings...
           JSBinary("===", scrut.member("constructor"), JSLit("String"))
-        case Var(name) => topLevelScope.getType(name) match {
+        case L(Var(name)) => topLevelScope.getType(name) match {
           case S(ClassSymbol(_, runtimeName, _, _, _)) => JSInstanceOf(scrut, JSIdent(runtimeName))
           case S(TraitSymbol(_, runtimeName, _, _, _)) => JSIdent(runtimeName)("is")(scrut)
           case S(_: TypeAliasSymbol) => throw new CodeGenError(s"cannot match type alias $name")
           case N => throw new CodeGenError(s"unknown match case: $name")
         }
-        case lit: Lit =>
+        case L(lit: Lit) =>
           JSBinary("===", scrut, JSLit(lit.idStr))
+        case R(Fields(fields, star)) => ???
       },
       _,
       _

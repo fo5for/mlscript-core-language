@@ -476,12 +476,12 @@ trait StatementImpl extends Located { self: Statement =>
 trait CaseBranchesImpl extends Located { self: CaseBranches =>
   
   def children: List[Located] = this match {
-    case Case(pat, body, rest) => pat :: body :: rest :: Nil
+    case Case(pat, body, rest) => pat.fold(identity, identity) :: body :: rest :: Nil
     case Wildcard(body) => body :: Nil
     case NoCases => Nil
   }
   
-  lazy val toList: Ls[Case] = this match {
+  lazy val toList: Ls[CaseBranches] = this match {
     case c: Case => c :: c.rest.toList
     case _ => Nil
   }

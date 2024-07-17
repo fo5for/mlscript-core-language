@@ -616,9 +616,9 @@ class Typer(var dbg: Boolean, var verbose: Bool, var explainErrors: Bool)
       }
     case Case(pat, bod, rest) =>
       val patTy = pat match {
-        case lit: Lit =>
-          ClassTag(lit, lit.baseClasses)(tp(pat.toLoc, "literal pattern"))
-        case Var(nme) =>
+        case L(lit: Lit) =>
+          ClassTag(lit, lit.baseClasses)(tp(lit.toLoc, "literal pattern"))
+        case L(pat @ Var(nme)) =>
           val tpr = tp(pat.toLoc, "type pattern")
           ctx.tyDefs.get(nme) match {
             case None =>
@@ -632,6 +632,8 @@ class Typer(var dbg: Boolean, var verbose: Bool, var explainErrors: Bool)
                 case Trt => trtNameToNomTag(td)(tp(pat.toLoc, "trait pattern"), ctx)
               }
           }
+        case R(pat @ Fields(fields, star)) =>
+          FieldsType(fields, star)(tp(pat.toLoc, "record fields pattern"))
       }
       val newCtx = ctx.nest
       val (req_ty, bod_ty, (tys, rest_ty)) = scrutVar match {

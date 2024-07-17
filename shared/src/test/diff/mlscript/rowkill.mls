@@ -113,6 +113,80 @@ r3 : ({{x; y; z; *}} | {{x; y; w; *}}) & ~{{x; y; w; *}}
 //│ ╙──       	     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 //│ res: {{x, y, z, *}} & ~{{x, y, w, *}}
 
+r4 = if true then {x = 42; y = 43} else {x = 42; y = 43; z = 44}
+//│ r4: {{x, y}} & {x: 42, y: 43} | {{x, y, z}} & {x: 42, y: 43, z: 44}
+
+case r4 of
+  { {{x; y; z}} -> r4.x + r4.y + r4.z
+  | {{x; y}} -> r4.x + r4.y
+  }
+//│ res: int
+
+case r4 of
+  { {{x; y; *}} -> r4.x + r4.y
+  }
+//│ res: int
+
+:e
+case r4 of
+  { {{x; y}} -> r4.x + r4.y
+  }
+//│ ╔══[ERROR] Type mismatch in `case` expression:
+//│ ║  l.131: 	case r4 of
+//│ ║         	^^^^^^^^^^
+//│ ║  l.132: 	  { {{x; y}} -> r4.x + r4.y
+//│ ║         	^^^^^^^^^^^^^^^^^^^^^^^^^^^
+//│ ║  l.133: 	  }
+//│ ║         	^^^
+//│ ╟── argument of type `{{x, y, z}} & {x: 42, y: 43, z: 44}` does not match type `{{x, y}}`
+//│ ║  l.116: 	r4 = if true then {x = 42; y = 43} else {x = 42; y = 43; z = 44}
+//│ ║         	                                        ^^^^^^^^^^^^^^^^^^^^^^^^
+//│ ╟── but it flows into reference with expected type `{{x, y}}`
+//│ ║  l.131: 	case r4 of
+//│ ╙──       	     ^^
+//│ res: error | int
+
+type Either[A, B] = {{l; *}} & {l: A} & ~{{r; *}} | {{r; *}} & {r: B} & ~{{l; *}}
+//│ Defined type alias Either[+A, +B]
+
+o1 = {l = true} : Either[bool, int]
+//│ o1: Either[bool, int]
+
+:e
+{l = true; r = 42} : Either[bool, int]
+//│ ╔══[ERROR] Type mismatch in type ascription:
+//│ ║  l.156: 	{l = true; r = 42} : Either[bool, int]
+//│ ║         	^^^^^^^^^^^^^^^^^^
+//│ ╟── expression of type `{{l, r}} & {l: true, r: 42}` does not match type `{{l, *}} & {l: bool} & ~{{r, *}} | {{r, *}} & {r: int} & ~{{l, *}}`
+//│ ╟── Note: constraint arises from union type:
+//│ ║  l.149: 	type Either[A, B] = {{l; *}} & {l: A} & ~{{r; *}} | {{r; *}} & {r: B} & ~{{l; *}}
+//│ ║         	                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+//│ ╟── from applied type reference:
+//│ ║  l.156: 	{l = true; r = 42} : Either[bool, int]
+//│ ╙──       	                     ^^^^^^^^^^^^^^^^^
+//│ res: Either[bool, int]
+
+def f1 o = case o of
+  { {{l; *}} -> if o.l then 1 else 0
+  | {{r; *}} -> o.r
+  }
+//│ f1: ({{l, *}} & {l: bool} | {{r, *}} & {r: 'r} & ~{{l, *}}) -> (0 | 1 | 'r)
+
+f1 : Either[bool, int] -> int
+//│ res: Either[bool, int] -> int
+
+f1 o1
+//│ res: 0 | 1
+
+o2 = {l = true; iftrue = 42; iffalse = 43}
+//│ o2: {{iffalse, iftrue, l}} & {iffalse: 43, iftrue: 42, l: true}
+
+case o2 of
+  { {{l; *}} -> if o2.l then o2.iftrue else o2.iffalse
+  | {{r; *}} -> 0
+  }
+//│ res: 0 | 42 | 43
+
 // fun x -> fun y -> x ++ y
 // //│ res: 'a -> ({$fields: 'a} & 'b) -> ('a & 'b)
 

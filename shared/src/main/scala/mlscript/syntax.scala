@@ -62,7 +62,7 @@ final case class CaseOf(trm: Term, cases: CaseBranches)              extends Ter
 final case class Subs(arr: Term, idx: Term)                          extends Term
 
 sealed abstract class CaseBranches extends CaseBranchesImpl
-final case class Case(pat: SimpleTerm, body: Term, rest: CaseBranches) extends CaseBranches
+final case class Case(pat: SimpleTerm \/ Fields, body: Term, rest: CaseBranches) extends CaseBranches
 final case class Wildcard(body: Term) extends CaseBranches
 final case object NoCases extends CaseBranches
 
