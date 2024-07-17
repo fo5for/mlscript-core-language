@@ -476,11 +476,6 @@ class Typer(var dbg: Boolean, var verbose: Bool, var explainErrors: Bool)
               :: fieldNames.map(tp => msg"Declared at" -> tp.toLoc))(raise)
           case _ =>
         }
-        // val fields = Internal("fields") -> fs.map { case (n, _) =>
-        //   NegType(RecordType.mk(n -> ExtrType(true)(noProv).toUpper(noProv) :: Nil)(noProv))(noProv) }
-        //     .reduceLeftOption[SimpleType]((lhs, rhs) => ComposedType(true, lhs, rhs)(noProv))
-        //     .getOrElse(ExtrType(true)(noProv))
-        //     .toUpper(tp(term.toLoc, "internal record literal"))
         val fields = FieldsType(fs.map(_._1), false)(tp(term.toLoc, "record literal fields"))
         val body = RecordType.mk(fs.map { case (n, t) => 
           if (n.name.isCapitalized)
