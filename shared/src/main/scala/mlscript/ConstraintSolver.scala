@@ -187,6 +187,7 @@ class ConstraintSolver extends NormalForms { self: Typer =>
                 case S(nt1) =>
                   recLb(t2, nt1._2)
                   rec(nt1._2.ub, t2.ub, false)
+                case N if n === Internal("fields") => rec(ExtrType(false)(noProv), t2.ub, false)
                 case N => reportError()
               }
             case (LhsRefined(N, N, N, ts, r, _), RhsBases(pts, N | S(L(_: FunctionType | _: ArrayBase)), _)) =>

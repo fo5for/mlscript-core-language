@@ -37,3 +37,12 @@ r3 = {x = 1; y = true} ++ {y = 2}
 
 r3 : {x: 1; y: 2}
 //│ res: {x: 1, y: 2}
+
+r4 = {y = false; z = "a"} ++ r3
+//│ r4: {$fields: ~{y: nothing}, y: 2} & ~{y: nothing} | {$fields: ~{y: nothing}, x: 1, y: nothing, z: "a"}
+
+r4 : {x: 1; y: 2; z: "a"}
+//│ res: {x: 1, y: 2, z: "a"}
+
+r5 = r4 ++ ({w = 42} : {w: 42})
+//│ r5: {w: 42}
