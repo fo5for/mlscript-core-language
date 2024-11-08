@@ -455,6 +455,23 @@ class Typer(var dbg: Boolean, var verbose: Bool, var explainErrors: Bool)
         }.instantiate
         mkProxy(ty, prov)
       case lit: Lit => ClassTag(lit, lit.baseClasses)(prov)
+      case App(Var("con"), trm) =>
+        val arg = typeTerm(trm)
+        val tv1 = freshVar(noProv, S("lhs"))
+        val tv2 = freshVar(noProv, S("rhs"))
+        val tvarg = TupleType(N -> RecordType.mk(Var("lhs") -> tv1.toUpper(noProv) :: Var("rhs") -> tv2.toUpper(noProv) :: Nil)() :: Nil)(noProv)
+        con(arg, tvarg, TopType)
+        con(tvarg, arg, TopType)
+        con(tv1, tv2, arg)
+      case App(Var("coneq"), trm) =>
+        val arg = typeTerm(trm)
+        val tv1 = freshVar(noProv, S("lhs"))
+        val tv2 = freshVar(noProv, S("rhs"))
+        val tvarg = TupleType(N -> RecordType.mk(Var("lhs") -> tv1.toUpper(noProv) :: Var("rhs") -> tv2.toUpper(noProv) :: Nil)() :: Nil)(noProv)
+        con(arg, tvarg, TopType)
+        con(tvarg, arg, TopType)
+        con(tv1, tv2, arg)
+        con(tv2, tv1, arg)
       case App(Var("neg" | "~"), trm) => typeTerm(trm).neg(prov)
       case App(App(Var("|"), lhs), rhs) =>
         typeTerm(lhs) | (typeTerm(rhs), prov)
