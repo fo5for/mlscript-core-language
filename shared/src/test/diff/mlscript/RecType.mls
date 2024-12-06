@@ -5,15 +5,15 @@
 // encoding as type aliases and as type variables.
 // In theory, they behave in the same way,
 // but the complexity in typing the mutually recursive type definition
-// seems to blow up (possibly due to the regularity check?).
+// blows up due to the regularity check,
+// which recursively expands the type definition.
 // The actual number of constrain calls seems to scale as n^2.
 //
-// The alternative encoding as type variables illustrates that
-// the exponential blow up is on typing the type defs, not on constraining.
-// Checking the encoding as type variables is almost instant
-// while checking the same depth encoded as type aliases
-// would take an extremely long time.
+// Typing the type definitions in this file takes about ~30s.
+// To skip the regularity check,
+// uncomment the `:nr` options before each block of definition.
 //
+// The alternative encoding as type variables also achieves the same goal.
 // To allow us to constrain two type directly in the tests,
 // two primatives `con` and `coneq` are added.
 // They take a single argument of a record type
@@ -21,11 +21,13 @@
 // For example, `con ( error: { lhs: T1; rhs: T2 } )` constrains `T1 <: T2`,
 // while `coneq ( error: { lhs: T1; rhs: T2 } )` constrains `T1 := T2`.
 
+// :nr
 type A2_1[A]  = A2_1[A] -> A2_2[A]
 type A2_2[A]  = A2_1[A] -> A2_2[A] -> A
 //│ Defined type alias A2_1[=A]
 //│ Defined type alias A2_2[=A]
 
+// :nr
 type B2_1[A]  = B2_1[A] -> B2_2[A]
 type B2_2[A]  = B2_1[A] -> B2_2[A] -> A
 //│ Defined type alias B2_1[=A]
@@ -51,6 +53,7 @@ b2 = a2
 
 
 
+// :nr
 type A6_1[A]  = A6_1[A] -> A6_2[A]
 type A6_2[A]  = A6_1[A] -> A6_2[A] -> A6_3[A]
 type A6_3[A]  = A6_1[A] -> A6_2[A] -> A6_3[A] -> A6_4[A]
@@ -64,6 +67,7 @@ type A6_6[A]  = A6_1[A] -> A6_2[A] -> A6_3[A] -> A6_4[A] -> A6_5[A] -> A6_6[A] -
 //│ Defined type alias A6_5[=A]
 //│ Defined type alias A6_6[=A]
 
+// :nr
 type B6_1[A]  = B6_1[A] -> B6_2[A]
 type B6_2[A]  = B6_1[A] -> B6_2[A] -> B6_3[A]
 type B6_3[A]  = B6_1[A] -> B6_2[A] -> B6_3[A] -> B6_4[A]
@@ -97,6 +101,7 @@ b6 = a6
 
 
 
+// :nr
 type A10_1[A]  = A10_1[A] -> A10_2[A]
 type A10_2[A]  = A10_1[A] -> A10_2[A] -> A10_3[A]
 type A10_3[A]  = A10_1[A] -> A10_2[A] -> A10_3[A] -> A10_4[A]
@@ -118,6 +123,7 @@ type A10_10[A] = A10_1[A] -> A10_2[A] -> A10_3[A] -> A10_4[A] -> A10_5[A] -> A10
 //│ Defined type alias A10_9[=A]
 //│ Defined type alias A10_10[=A]
 
+// :nr
 type B10_1[A]  = B10_1[A] -> B10_2[A]
 type B10_2[A]  = B10_1[A] -> B10_2[A] -> B10_3[A]
 type B10_3[A]  = B10_1[A] -> B10_2[A] -> B10_3[A] -> B10_4[A]
@@ -159,6 +165,7 @@ b10 = a10
 
 
 
+// :nr
 type A14_1[A]  = A14_1[A] -> A14_2[A]
 type A14_2[A]  = A14_1[A] -> A14_2[A] -> A14_3[A]
 type A14_3[A]  = A14_1[A] -> A14_2[A] -> A14_3[A] -> A14_4[A]
@@ -188,6 +195,7 @@ type A14_14[A] = A14_1[A] -> A14_2[A] -> A14_3[A] -> A14_4[A] -> A14_5[A] -> A14
 //│ Defined type alias A14_13[=A]
 //│ Defined type alias A14_14[=A]
 
+// :nr
 type B14_1[A]  = B14_1[A] -> B14_2[A]
 type B14_2[A]  = B14_1[A] -> B14_2[A] -> B14_3[A]
 type B14_3[A]  = B14_1[A] -> B14_2[A] -> B14_3[A] -> B14_4[A]
@@ -237,6 +245,7 @@ b14 = a14
 
 
 
+// :nr
 type A18_1[A]  = A18_1[A] -> A18_2[A]
 type A18_2[A]  = A18_1[A] -> A18_2[A] -> A18_3[A]
 type A18_3[A]  = A18_1[A] -> A18_2[A] -> A18_3[A] -> A18_4[A]
@@ -274,6 +283,7 @@ type A18_18[A] = A18_1[A] -> A18_2[A] -> A18_3[A] -> A18_4[A] -> A18_5[A] -> A18
 //│ Defined type alias A18_17[=A]
 //│ Defined type alias A18_18[=A]
 
+// :nr
 type B18_1[A]  = B18_1[A] -> B18_2[A]
 type B18_2[A]  = B18_1[A] -> B18_2[A] -> B18_3[A]
 type B18_3[A]  = B18_1[A] -> B18_2[A] -> B18_3[A] -> B18_4[A]
@@ -334,22 +344,22 @@ b18 = a18
 :e
 coneq ( error: { lhs: 42; rhs: 43 } )
 //│ ╔══[ERROR] Type mismatch in application:
-//│ ║  l.335: 	coneq ( error: { lhs: 42; rhs: 43 } )
+//│ ║  l.345: 	coneq ( error: { lhs: 42; rhs: 43 } )
 //│ ║         	^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 //│ ╟── type `42` does not match type `43`
-//│ ║  l.335: 	coneq ( error: { lhs: 42; rhs: 43 } )
+//│ ║  l.345: 	coneq ( error: { lhs: 42; rhs: 43 } )
 //│ ║         	                      ^^
 //│ ╟── Note: constraint arises from literal type:
-//│ ║  l.335: 	coneq ( error: { lhs: 42; rhs: 43 } )
+//│ ║  l.345: 	coneq ( error: { lhs: 42; rhs: 43 } )
 //│ ╙──       	                               ^^
 //│ ╔══[ERROR] Type mismatch in application:
-//│ ║  l.335: 	coneq ( error: { lhs: 42; rhs: 43 } )
+//│ ║  l.345: 	coneq ( error: { lhs: 42; rhs: 43 } )
 //│ ║         	^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 //│ ╟── type `42` does not match type `43`
-//│ ║  l.335: 	coneq ( error: { lhs: 42; rhs: 43 } )
+//│ ║  l.345: 	coneq ( error: { lhs: 42; rhs: 43 } )
 //│ ║         	                      ^^
 //│ ╟── Note: constraint arises from literal type:
-//│ ║  l.335: 	coneq ( error: { lhs: 42; rhs: 43 } )
+//│ ║  l.345: 	coneq ( error: { lhs: 42; rhs: 43 } )
 //│ ╙──       	                               ^^
 //│ res: ({lhs: 42, rhs: 43},)
 

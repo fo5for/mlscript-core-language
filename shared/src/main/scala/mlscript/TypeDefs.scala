@@ -147,7 +147,7 @@ class TypeDefs extends ConstraintSolver { self: Typer =>
   // ()
   
   
-  def processTypeDefs(newDefs0: List[mlscript.TypeDef])(implicit ctx: Ctx, raise: Raise): Ctx = {
+  def processTypeDefs(newDefs0: List[mlscript.TypeDef], noRegChk: Bool)(implicit ctx: Ctx, raise: Raise): Ctx = {
     
     var allDefs = ctx.tyDefs
     val allEnv = ctx.env.clone
@@ -345,7 +345,7 @@ class TypeDefs extends ConstraintSolver { self: Typer =>
         
         // Note: this will end up going through some types several times... We could make sure to
         //    only go through each type once, but the error messages would be worse.
-        if (rightParents && checkRegular(td.bodyTy)(Map(n.name -> td.targs)))
+        if (rightParents && (noRegChk || checkRegular(td.bodyTy)(Map(n.name -> td.targs))))
           td.nme.name -> td :: Nil
         else Nil
       })

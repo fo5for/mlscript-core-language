@@ -78,6 +78,7 @@ class DiffTests extends org.scalatest.funsuite.AnyFunSuite with org.scalatest.Pa
       expectCodeGenErrors: Bool = false,
       showRepl: Bool = false,
       allowEscape: Bool = false,
+      noRegChk: Bool = false,
       // noProvs: Bool = false,
     ) {
       def isDebugging: Bool = dbg || dbgSimplif
@@ -123,6 +124,7 @@ class DiffTests extends org.scalatest.funsuite.AnyFunSuite with org.scalatest.Pa
           case "re" => mode.copy(expectRuntimeErrors = true)
           case "ShowRepl" => mode.copy(showRepl = true)
           case "escape" => mode.copy(allowEscape = true)
+          case "nr" => mode.copy(noRegChk = true)
           case _ =>
             failures += allLines.size - lines.size
             output("/!\\ Unrecognized option " + line)
@@ -272,7 +274,7 @@ class DiffTests extends org.scalatest.funsuite.AnyFunSuite with org.scalatest.Pa
             }
             
             val oldCtx = ctx
-            ctx = typer.processTypeDefs(typeDefs)(ctx, raise)
+            ctx = typer.processTypeDefs(typeDefs, mode.noRegChk)(ctx, raise)
             
             def getType(ty: typer.TypeScheme): Type = {
               val wty = ty.uninstantiatedBody
@@ -664,8 +666,8 @@ object DiffTests {
     // "Subsume",
     // "Methods",
   )
-  private def filter(name: Str): Bool =
-    if (focused.nonEmpty) focused(name) else modified.isEmpty || modified(name)
+  private def filter(name: Str): Bool = true
+    // if (focused.nonEmpty) focused(name) else modified.isEmpty || modified(name)
   
   private val files = allFiles.filter { file =>
       val fileName = file.baseName
